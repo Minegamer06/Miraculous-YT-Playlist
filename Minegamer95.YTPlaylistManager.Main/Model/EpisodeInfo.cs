@@ -2,8 +2,8 @@ namespace Minegamer95.YTPlaylistManager.Main.Model;
 
 public class EpisodeInfo : VideoInfo
 {
-  public uint? Season { get; set; }
-  public uint? Episode { get; set; }
+  public int? Season { get; set; }
+  public int? Episode { get; set; }
 
   public EpisodeInfo()
   {

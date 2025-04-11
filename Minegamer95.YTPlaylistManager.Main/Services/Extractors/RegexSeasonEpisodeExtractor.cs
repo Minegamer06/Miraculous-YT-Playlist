@@ -21,7 +21,7 @@ public class RegexSeasonEpisodeExtractor : ISeasonEpisodeExtractor
   {
     _EpisodeGroupName = episodeGroupName;
     _SeasonGroupName = seasonGroupName;
-    _regex = new Regex(pattern, RegexOptions.IgnoreCase, timeout ?? TimeSpan.FromSeconds(2));
+    _regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, timeout ?? TimeSpan.FromSeconds(2));
   }
 
   public EpisodeInfo ExtractSeasonEpisode(VideoInfo videoInfo)
@@ -32,12 +32,12 @@ public class RegexSeasonEpisodeExtractor : ISeasonEpisodeExtractor
 
     var match = _regex.Match(videoInfo.Title);
     if (!match.Success) return episodeInfo;
-    if (!uint.TryParse(match.Groups[_SeasonGroupName].Value, out uint season))
+    if (int.TryParse(match.Groups[_SeasonGroupName].Value, out int season))
     {
       episodeInfo.Season = season;
     }
 
-    if (uint.TryParse(match.Groups[_EpisodeGroupName].Value, out uint episode))
+    if (int.TryParse(match.Groups[_EpisodeGroupName].Value, out int episode))
     {
       episodeInfo.Episode = episode;
     }

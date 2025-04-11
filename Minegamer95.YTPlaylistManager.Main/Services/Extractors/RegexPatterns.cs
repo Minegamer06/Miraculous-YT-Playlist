@@ -22,5 +22,5 @@ public static class RegexPatterns
   /// wie Leerzeichen, Bindestriche oder Doppelpunkte zwischen Staffel- und Episodenangabe.
   /// </summary>
   public const string SeasonEpisodePattern =
-    @"(?i)\bS(?:eason|taffel|aison|temporada)\s*(?<season>\d{1,2})\b[\s\-:]*\bE(?:pisode|folge|épisode|episodio|cap[ií]tulo)\s*(?<episode>\d{1,3})\b";
+    @"(?i)\b(?:Season|Staffel|Saison|Temporada)\s*(?<season>\d{1,2})[\s\-:]*\b(?:Episode|Folge|Épisode|Episodio|Cap[ií]tulo)\s*(?<episode>\d{1,3})";  
 }
