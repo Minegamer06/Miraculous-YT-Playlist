@@ -1,0 +1,6 @@
+﻿services:
+  minegamer95.ytplaylistmanager.main:
+    image: minegamer95.ytplaylistmanager.main
+    build:
+      context: .
+      dockerfile: Minegamer95.YTPlaylistManager.Main/Dockerfile
