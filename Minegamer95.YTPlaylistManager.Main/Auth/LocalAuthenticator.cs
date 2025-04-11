@@ -17,14 +17,15 @@ public class LocalAuthenticator : IGoogleAuthenticator
     /// <param name="clientSecrets">Die geladenen Client Secrets.</param>
     /// <param name="scopes">Die benötigten API-Scopes.</param>
     /// <param name="dataStorePath">Pfad für den FileDataStore (Standard: "YouTube.Auth.Store").</param>
-    public LocalAuthenticator(ClientSecrets clientSecrets, IEnumerable<string> scopes, string dataStorePath = "YouTube.Auth.Store")
+    /// <param name="dataStorePathIsFull"></param>
+    public LocalAuthenticator(ClientSecrets clientSecrets, IEnumerable<string> scopes, string dataStorePath = "YouTube.Auth.Store", bool dataStorePathIsFull = true)
     {
         _flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {
             ClientSecrets = clientSecrets,
             Scopes = scopes,
             // Wichtig: FileDataStore speichert den Refresh Token lokal
-            DataStore = new FileDataStore(dataStorePath, true)
+            DataStore = new FileDataStore(dataStorePath, dataStorePathIsFull)
         });
     }
 
@@ -45,7 +46,7 @@ public class LocalAuthenticator : IGoogleAuthenticator
                 Console.WriteLine("Local: Gespeicherte Anmeldeinformationen werden geprüft...");
 
                 // Prüfen, ob der Access Token noch gültig ist oder erneuert werden muss
-                if (credential.Token.IsExpired(Google.Apis.Util.SystemClock.Default))
+                if (credential.Token.IsStale)
                 {
                     Console.WriteLine("Local: Access Token ist abgelaufen, versuche Erneuerung...");
                     if (await credential.RefreshTokenAsync(cancellationToken))
@@ -55,7 +56,7 @@ public class LocalAuthenticator : IGoogleAuthenticator
                     else
                     {
                         // Wenn die Erneuerung fehlschlägt, könnte der Refresh Token ungültig sein.
-                        Console.Error.WriteLine("Local: Fehler: Access Token konnte nicht erneuert werden. Refresh Token möglicherweise ungültig. Starte manuellen Flow.");
+                        await Console.Error.WriteLineAsync("Local: Fehler: Access Token konnte nicht erneuert werden. Refresh Token möglicherweise ungültig. Starte manuellen Flow.");
                         credential = null; // Erzwinge neuen manuellen Flow
                     }
                 }
@@ -71,17 +72,15 @@ public class LocalAuthenticator : IGoogleAuthenticator
         }
         catch (Exception ex)
         {
-             Console.Error.WriteLine($"Local: Fehler beim Laden oder Prüfen des Tokens: {ex.Message}. Starte manuellen Flow.");
+             await Console.Error.WriteLineAsync($"Local: Fehler beim Laden oder Prüfen des Tokens: {ex.Message}. Starte manuellen Flow.");
              credential = null; // Sicherstellen, dass der manuelle Flow gestartet wird
         }
 
 
         // Wenn keine gültigen Credentials gefunden oder geladen werden konnten
-        if (credential == null)
-        {
-            Console.WriteLine("Local: Starte manuellen Autorisierungs-Flow...");
-            credential = await AuthorizeManuallyAsync(cancellationToken);
-        }
+        if (credential != null) return credential; // Kann null sein, wenn die manuelle Autorisierung fehlschlägt
+        Console.WriteLine("Local: Starte manuellen Autorisierungs-Flow...");
+        credential = await AuthorizeManuallyAsync(cancellationToken);
 
         return credential; // Kann null sein, wenn die manuelle Autorisierung fehlschlägt
     }
@@ -100,11 +99,11 @@ public class LocalAuthenticator : IGoogleAuthenticator
             Console.WriteLine(authUrl);
             Console.WriteLine("\nNachdem du die Berechtigung erteilt hast, kopiere den angezeigten Code und füge ihn hier ein:");
             Console.Write("Autorisierungscode: ");
-            string authCode = Console.ReadLine()?.Trim(); // Lese den Code von der Konsole
+            string? authCode = Console.ReadLine()?.Trim(); // Lese den Code von der Konsole
 
             if (string.IsNullOrWhiteSpace(authCode))
             {
-                Console.Error.WriteLine("Local: Fehler: Kein Autorisierungscode eingegeben.");
+                await Console.Error.WriteLineAsync("Local: Fehler: Kein Autorisierungscode eingegeben.");
                 return null;
             }
 
@@ -134,12 +133,12 @@ public class LocalAuthenticator : IGoogleAuthenticator
         }
         catch (TokenResponseException ex)
         {
-            Console.Error.WriteLine($"\nLocal: Fehler beim Austauschen des Autorisierungscodes: {ex.Error.Error} - {ex.Error.ErrorDescription}");
+            await Console.Error.WriteLineAsync($"\nLocal: Fehler beim Austauschen des Autorisierungscodes: {ex.Error.Error} - {ex.Error.ErrorDescription}");
             return null;
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"\nLocal: Ein unerwarteter Fehler ist beim Token-Austausch aufgetreten: {ex.Message}");
+            await Console.Error.WriteLineAsync($"\nLocal: Ein unerwarteter Fehler ist beim Token-Austausch aufgetreten: {ex.Message}");
             return null;
         }
     }
