@@ -36,7 +36,7 @@ try
     var ytPlaylist = new PlaylistVideoProvider(credential, "My YouTube Playlist Manager", sourcePlaylistId);
 
     // --- Videos sammeln ---
-    List<VideoInfo> allAvailableVideos = new List<VideoInfo>(); // Verwende deine VideoInfo-Klasse
+    List<VideoInfo> allAvailableVideos = []; // Verwende deine VideoInfo-Klasse
 
     // Beispiel: Videos vom Kanal holen
     if (!string.IsNullOrEmpty(sourceChannelId)) // Prüfe auf Standardwert

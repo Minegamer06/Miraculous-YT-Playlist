@@ -6,12 +6,19 @@ namespace Minegamer95.YTPlaylistManager.Test;
 
 public class RegexPatternsTests
 {
-  private static readonly RegexSeasonEpisodeExtractor _seasonEpisodePattern = new RegexSeasonEpisodeExtractor();
+  private static readonly RegexSeasonEpisodeExtractor SeasonEpisodePattern = new RegexSeasonEpisodeExtractor();
 
-  public static IEnumerable<object[]> ValidTestData => ValidTestDataMixed.Concat(ValidTestDataMiraculousDE).Concat(ValidTestDataMiraculousEN);
+  public static IEnumerable<object[]> ValidTestData =>
+    ValidTestDataMixed.Concat(ValidTestDataMiraculousDe)
+      .Concat(ValidTestDataMiraculousEn)
+      .Concat(ValidTestDataMiraculousFr);
 
   public static IEnumerable<object[]> InValidTestData =>
-    InValidTestDataMiraculousDE.Concat(InValidTestDataMiraculousEN);
+    InValidTestDataMiraculousDe
+      .Concat(InValidTestDataMiraculousEn)
+      .Concat(InValidTestDataMiraculousFr);
+
+  #region TestDataValid
 
   private static IEnumerable<object[]> ValidTestDataMixed =>
   [
@@ -27,7 +34,7 @@ public class RegexPatternsTests
     ["Mixed Case", "sEaSoN 5 ePiSoDe 10", 5, 10],
   ];
 
-  private static IEnumerable<object[]> ValidTestDataMiraculousDE =>
+  private static IEnumerable<object[]> ValidTestDataMiraculousDe =>
   [
     ["MiraculousDE", "MIRACULOUS | 🐞 CHLOÉ SIEHT GELB 🐾 | GANZE FOLGE ▶️ Staffel 4 Folge 8", 4, 8],
     ["MiraculousDE", "MIRACULOUS | 🐞 DER COLLECTOR KEHRT ZURÜCK 🐾 | GANZE FOLGE ▶️ Staffel 4 Folge 9", 4, 9],
@@ -45,8 +52,8 @@ public class RegexPatternsTests
     ["MiraculousDE", "MIRACULOUS | 🐞 OPTIGAMI 🐾 | GANZE FOLGE ▶️ Staffel 4 Folge 13", 4, 13],
     ["MiraculousDE", "MIRACULOUS | 🐞 MR. PIGEON 72 🐾 | GANZE FOLGE ▶️ Staffel 4 Folge 4", 4, 4],
   ];
-  
-  private static IEnumerable<object[]> ValidTestDataMiraculousEN =>
+
+  private static IEnumerable<object[]> ValidTestDataMiraculousEn =>
   [
     ["MiraculousEN", "MIRACULOUS | 🐞 DESPERADA 🐾 | FULL EPISODE ▶️ Season 3 Episode 11", 3, 11],
     ["MiraculousEN", "MIRACULOUS | 🐞 FEAST 🐾 | FULL EPISODE ▶️ Season 3 Episode 15", 3, 15],
@@ -67,7 +74,23 @@ public class RegexPatternsTests
     ["MiraculousEN", "MIRACULOUS | 🐞 WEREDAD 🐾 | FULL EPISODE ▶️ Season 3 Episode 6", 3, 6]
   ];
 
-  private static IEnumerable<object[]> InValidTestDataMiraculousDE
+  private static IEnumerable<object[]> ValidTestDataMiraculousFr =>
+  [
+    ["MiraculousFR", "MIRACULOUS | 🐞 CROCODUEL 🐾 | Episode entier ▶️ Saison 4 Episode 12", 4, 12],
+    ["MiraculousFR", "MIRACULOUS | 🐞 CULPABYSSE 🐾 | Episode entier ▶️ Saison 4 Episode 11", 4, 11],
+    ["MiraculousFR", "MIRACULOUS | 🐞 GABRIEL AGRESTE 🐾 | Episode entier ▶️ Saison 4 Episode 9", 4, 9],
+    ["MiraculousFR", "MIRACULOUS | 🐞 OPTIGAMI 🐾 | Episode entier ▶️ Saison 4 Episode 13", 4, 13],
+    ["MiraculousFR", "MIRACULOUS | 🐞 PIRKELL 🐾 | Episode entier ▶️ Saison 4 Episode 7", 4, 7],
+    ["MiraculousFR", "MIRACULOUS | 🐞 QUEEN BANANA 🐾 | Episode entier ▶️ Saison 4 Episode 8", 4, 8],
+    ["MiraculousFR", "MIRACULOUS | 🐞 SANGSURE 🐾 | Episode entier ▶️ Saison 4 Episode 10", 4, 10],
+    ["MiraculousFR", "MIRACULOUS | 🐞 SENTIBULLEUR 🐾 | Episode entier ▶️ Saison 4 Episode 14", 4, 14]
+  ];
+
+  #endregion TestDataValid
+
+  #region TestDataInvalid
+
+  private static IEnumerable<object[]> InValidTestDataMiraculousDe
   {
     get
     {
@@ -93,7 +116,40 @@ public class RegexPatternsTests
     }
   }
 
-  private static IEnumerable<object[]> InValidTestDataMiraculousEN
+  private static IEnumerable<object[]> InValidTestDataMiraculousFr
+  {
+    get
+    {
+      foreach (var item in new[]
+               {
+                 "MIRACULOUS | 🌎 JOUR DE LA TERRE - COMPILATION ♻️ | SAISON 5 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 CHLOÉ 🔝 | SAISON 5 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 Compilation 30 🐾 ÉPISODES ENTIERS ▶️ [MANGEAMOUR - MIRACLE QUEEN] SAISON 3",
+                 "MIRACULOUS | 🐞 DADDYCOP - Akumatisation 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 DADDYCOP - Le Plan de Marinette 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 DADDYCOP - TEASER 🐾 | SAISON 6",
+                 "MIRACULOUS | 🐞 DESSINATRISTE - Akumatisation 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 DESSINATRISTE - Alya & Marinette 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 DESSINATRISTE - Couples 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 DESSINATRISTE - TEASER 🐾 | SAISON 6",
+                 "MIRACULOUS | 🐞 FÊTE 🔝 | SAISON 5 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 NINO 🔝 | SAISON 5 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 PAPYS GAROUS - Akumatisation 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 PAPYS GAROUS - Les grands-parents d'Adrien 🐾 | SAISON 6",
+                 "MIRACULOUS | 🐞 PAPYS GAROUS - TEASER 🐾 | SAISON 6",
+                 "MIRACULOUS | 🐞 REVELATOR - TEASER 🐾 | SAISON 6",
+                 "MIRACULOUS | 🐞 SUBLIMATION - Akumatisation 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 SUBLIMATION - Sublime 🐾 | SAISON 6 | Les aventures de Ladybug et Chat Noir",
+                 "MIRACULOUS | 🐞 SUBLIMATION - TEASER 🐾 | SAISON 6",
+                 "MIRACULOUS | 💖 ADRIENETTE 🐞 | Les 10 meilleurs moments | 10ème anniversaire 💫",
+               })
+      {
+        yield return ["MiraculousDE", item];
+      }
+    }
+  }
+
+  private static IEnumerable<object[]> InValidTestDataMiraculousEn
   {
     get
     {
@@ -150,6 +206,7 @@ public class RegexPatternsTests
     }
   }
 
+  #endregion TestDataInvalid
 
   [Theory]
   [MemberData(nameof(ValidTestData))]
@@ -163,7 +220,7 @@ public class RegexPatternsTests
     var videoInfo = new VideoInfo { Title = title };
 
     // Act
-    var episodeInfo = _seasonEpisodePattern.ExtractSeasonEpisode(videoInfo);
+    var episodeInfo = SeasonEpisodePattern.ExtractSeasonEpisode(videoInfo);
 
     // Assert
     Assert.True(episodeInfo.Season.HasValue, $"[{testCaseName}] Season should have value for title: '{title}'");
@@ -181,7 +238,7 @@ public class RegexPatternsTests
     var videoInfo = new VideoInfo { Title = title };
 
     // Act
-    var episodeInfo = _seasonEpisodePattern.ExtractSeasonEpisode(videoInfo);
+    var episodeInfo = SeasonEpisodePattern.ExtractSeasonEpisode(videoInfo);
 
     // Assert
     Assert.False(episodeInfo.Episode.HasValue, $"[{testCaseName}] Episode should be null for invalid title: '{title}'");
