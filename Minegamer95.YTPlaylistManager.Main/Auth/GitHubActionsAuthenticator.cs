@@ -8,7 +8,7 @@ namespace Minegamer95.YTPlaylistManager.Main.Auth;
 // --- Implementierung für GitHub Actions (mit Refresh Token aus Umgebungsvariable/Secret) ---
 public class GitHubActionsAuthenticator : IGoogleAuthenticator
 {
-    private readonly ClientSecrets _clientSecrets;
+    private readonly ClientSecrets? _clientSecrets;
     private readonly IEnumerable<string> _scopes;
     private readonly string? _refreshToken;
     private readonly string _userId = "user"; // Kann bei Bedarf konfigurierbar gemacht werden
@@ -19,7 +19,7 @@ public class GitHubActionsAuthenticator : IGoogleAuthenticator
     /// <param name="clientSecrets">Die geladenen Client Secrets.</param>
     /// <param name="scopes">Die benötigten API-Scopes.</param>
     /// <param name="refreshToken">Der Refresh Token (z.B. aus GitHub Secrets).</param>
-    public GitHubActionsAuthenticator(ClientSecrets clientSecrets, IEnumerable<string> scopes, string? refreshToken)
+    public GitHubActionsAuthenticator(ClientSecrets? clientSecrets, IEnumerable<string> scopes, string? refreshToken)
     {
         if (clientSecrets == null) throw new ArgumentNullException(nameof(clientSecrets));
         if (scopes == null) throw new ArgumentNullException(nameof(scopes));
@@ -68,13 +68,13 @@ public class GitHubActionsAuthenticator : IGoogleAuthenticator
         }
         catch (TokenResponseException ex)
         {
-             Console.Error.WriteLine($"GitHub Actions: Fehler beim Erneuern des Tokens (TokenResponseException): {ex.Error.Error} - {ex.Error.ErrorDescription}");
-             Console.Error.WriteLine("Mögliche Ursachen: Refresh Token ist ungültig, abgelaufen oder wurde widerrufen.");
+             await Console.Error.WriteLineAsync($"GitHub Actions: Fehler beim Erneuern des Tokens (TokenResponseException)");
+             await Console.Error.WriteLineAsync("Mögliche Ursachen: Refresh Token ist ungültig, abgelaufen oder wurde widerrufen.");
              return null; // Fehler anzeigen
         }
         catch (Exception ex)
         {
-             Console.Error.WriteLine($"GitHub Actions: Unerwarteter Fehler beim Erneuern des Tokens: {ex.Message}");
+             await Console.Error.WriteLineAsync($"GitHub Actions: Unerwarteter Fehler beim Erneuern des Tokens");
              return null; // Fehler anzeigen
         }
 
@@ -84,11 +84,9 @@ public class GitHubActionsAuthenticator : IGoogleAuthenticator
             Console.WriteLine("GitHub Actions: Access Token erfolgreich erneuert.");
             return credential;
         }
-        else
-        {
-            // Sollte durch die Exception-Behandlung oben abgedeckt sein, aber zur Sicherheit:
-            Console.Error.WriteLine("GitHub Actions: Fehler: Access Token konnte nicht erneuert werden (RefreshTokenAsync gab false zurück).");
-            return null; // Fehler anzeigen
-        }
+
+        // Sollte durch die Exception-Behandlung oben abgedeckt sein, aber zur Sicherheit:
+        await Console.Error.WriteLineAsync("GitHub Actions: Fehler: Access Token konnte nicht erneuert werden (RefreshTokenAsync gab false zurück).");
+        return null; // Fehler anzeigen
     }
 }

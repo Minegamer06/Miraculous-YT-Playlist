@@ -1,43 +1,10 @@
 using Google.Apis.Auth.OAuth2;
+using Minegamer95.YTPlaylistManager.Main.Auth.ClientSecretProvider;
 
 namespace Minegamer95.YTPlaylistManager.Main.Auth;
 
 public static class AuthHelper
 {
-  /// <summary>
-  /// Lädt die Client Secrets aus der angegebenen Datei.
-  /// </summary>
-  /// <param name="path">Pfad zur client_secrets.json Datei.</param>
-  /// <returns>ClientSecrets Objekt bei Erfolg, sonst null.</returns>
-  private static ClientSecrets? LoadClientSecrets(string path)
-  {
-    if (!File.Exists(path))
-    {
-      Console.Error.WriteLine($"Fehler: Client Secrets Datei nicht gefunden unter '{path}'.");
-      return null;
-    }
-
-    try
-    {
-      using var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
-      var secrets = GoogleClientSecrets.FromStream(stream).Secrets;
-      if (secrets == null || string.IsNullOrEmpty(secrets.ClientId) || string.IsNullOrEmpty(secrets.ClientSecret))
-      {
-        Console.Error.WriteLine(
-          $"Fehler: Client Secrets konnten nicht geladen werden oder sind unvollständig in '{path}'. Prüfe die Datei.");
-        return null;
-      }
-
-      Console.WriteLine($"Client Secrets erfolgreich aus '{path}' geladen.");
-      return secrets;
-    }
-    catch (Exception ex)
-    {
-      Console.Error.WriteLine($"Fehler beim Lesen oder Parsen der Client Secrets aus '{path}': {ex.Message}");
-      return null;
-    }
-  }
-
   /// <summary>
   /// Führt die Authentifizierung basierend auf der Umgebung (Environment Variable) durch.
   /// Lädt Client Secrets, wählt den passenden Authenticator und führt AuthorizeAsync aus.
@@ -55,19 +22,27 @@ public static class AuthHelper
   {
     Console.WriteLine("Starte Authentifizierungsprozess...");
 
-    // 1. Client Secrets laden
-    var clientSecrets = LoadClientSecrets(clientSecretsPath);
+    ClientSecrets? clientSecrets;
+    IGoogleAuthenticator authenticator;
+
+
+    string? refreshTokenFromEnv = Environment.GetEnvironmentVariable("GOOGLE_REFRESH_TOKEN");
+    if (string.IsNullOrWhiteSpace(refreshTokenFromEnv))
+    {
+      Console.WriteLine("Umgebungsvariable GOOGLE_REFRESH_TOKEN nicht gefunden. Verwende Client Secrets datei.");
+      clientSecrets = new FileClientSecretProvider(clientSecretsPath).GetClientSecrets();
+    }
+    else
+    {
+      Console.WriteLine("Umgebungsvariable GOOGLE_REFRESH_TOKEN gefunden. Verwende GitHub Actions Authentifizierung.");
+      clientSecrets = new GitHubClientSecretsProvider().GetClientSecrets();
+    }
+    
     if (clientSecrets == null)
     {
       Console.WriteLine("Authentifizierung abgebrochen, da Client Secrets nicht geladen werden konnten.");
       return null;
     }
-
-    IGoogleAuthenticator authenticator;
-
-    // 2. Auswahl der Authentifizierungsmethode
-    //    Versuche, den Refresh Token aus einer Umgebungsvariable zu lesen.
-    string? refreshTokenFromEnv = Environment.GetEnvironmentVariable("GOOGLE_REFRESH_TOKEN");
 
     if (!string.IsNullOrWhiteSpace(refreshTokenFromEnv))
     {

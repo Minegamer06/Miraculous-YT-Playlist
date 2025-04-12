@@ -18,7 +18,7 @@ public class LocalAuthenticator : IGoogleAuthenticator
     /// <param name="scopes">Die benötigten API-Scopes.</param>
     /// <param name="dataStorePath">Pfad für den FileDataStore (Standard: "YouTube.Auth.Store").</param>
     /// <param name="dataStorePathIsFull"></param>
-    public LocalAuthenticator(ClientSecrets clientSecrets, IEnumerable<string> scopes, string dataStorePath = "YouTube.Auth.Store", bool dataStorePathIsFull = true)
+    public LocalAuthenticator(ClientSecrets? clientSecrets, IEnumerable<string> scopes, string dataStorePath = "YouTube.Auth.Store", bool dataStorePathIsFull = true)
     {
         _flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
         {

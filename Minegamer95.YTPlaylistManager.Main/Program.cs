@@ -1,6 +1,6 @@
 ﻿using Google.Apis.YouTube.v3;
 using Minegamer95.YTPlaylistManager.Main.Auth;
-using Minegamer95.YTPlaylistManager.Main.Model; 
+using Minegamer95.YTPlaylistManager.Main.Model;
 using Minegamer95.YTPlaylistManager.Main.Services;
 using Minegamer95.YTPlaylistManager.Main.Services.Extractors;
 
@@ -15,10 +15,10 @@ Console.WriteLine("======================================================\n");
 
 // --- Konfiguration ---
 // ID des Kanals, von dem Videos geholt werden sollen
-const string sourceChannelId = "UC2D5z27XfUz5DfU7kQAehiA";
+const string sourceChannelId = ""; //"UC2D5z27XfUz5DfU7kQAehiA";
 // ID der Playlist, von der Videos geholt werden sollen
 const string sourcePlaylistId = "PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT";
-string targetPlaylistId_Season1 = "PL_TARGET_SEASON_1"; // ID der Ziel-Playlist für Staffel 1 // <-- ANPASSEN!
+const string targetPlaylistIdSeason1 = "PLQg5Jd-VCfKAqwgaRkQo4Ngct4TeKi0-O"; // ID der Ziel-Playlist für Staffel 1 // <-- ANPASSEN! "PLQg5Jd-VCfKABwRZWY4BQxLjFjwm7u0mH"
 
 try
 {
@@ -55,13 +55,14 @@ try
     }
 
     var episodeConverter = new RegexSeasonEpisodeExtractor();
+
+    var episodes = episodeConverter.ExtractSeasonEpisodes(allAvailableVideos)
+      .OrderBy(x => x.Season)
+      .ThenBy(x => x.Episode).ToList();
     
-    var episodes = episodeConverter.ExtractSeasonEpisodes(allAvailableVideos);
     Console.WriteLine($"Videos:\n\t{
       string.Join("\n\t", episodes.Where(x => x.Season is not null)
-                                            .OrderBy(x => x.Season)
-                                            .ThenBy(x => x.Episode)
-                                            .Select(x => $"Staffel {x.Season}, Episode {x.Episode}, NAME: {x.Title} ({x.VideoId})"))
+        .Select(x => $"Staffel {x.Season}, Episode {x.Episode}, NAME: {x.Title} ({x.VideoId})"))
     }");
     Console.WriteLine($"\nInsgesamt {allAvailableVideos.Count} einzigartige Videos gesammelt.");
 
@@ -69,19 +70,17 @@ try
 
     // Beispiel für Staffel 1
     uint seasonToUpdate = 1;
-    if (!string.IsNullOrEmpty(targetPlaylistId_Season1) &&
-        targetPlaylistId_Season1 != "PL_TARGET_SEASON_1") // Prüfe auf Standardwert
+    if (!string.IsNullOrEmpty(targetPlaylistIdSeason1)) // Prüfe auf Standardwert
     {
-      Console.WriteLine($"\nVerarbeite Staffel {seasonToUpdate} für Playlist {targetPlaylistId_Season1}...");
-      // Stelle sicher, dass FilterAndSortVideosForSeason existiert und List<string> zurückgibt
-      // List<string> season1VideoIds = updater.FilterAndSortVideosForSeason(allAvailableVideos, seasonToUpdate);
+      Console.WriteLine($"\nVerarbeite Staffel {seasonToUpdate} für Playlist {targetPlaylistIdSeason1}...");
+      List<string> season1VideoIds = episodes.Where(x => x.Season == 1).Select(x => x.VideoId).ToList();
       // Stelle sicher, dass UpdateTargetPlaylistAsync existiert
-      // await updater.UpdateTargetPlaylistAsync(targetPlaylistId_Season1, season1VideoIds);
+      await updater.UpdateTargetPlaylistAsync(targetPlaylistIdSeason1, season1VideoIds, false);
     }
     else
     {
       Console.WriteLine(
-        $"\nÜberspringe Staffel {seasonToUpdate}, da keine gültige Ziel-Playlist ID ('{targetPlaylistId_Season1}') angegeben wurde.");
+        $"\nÜberspringe Staffel {seasonToUpdate}, da keine gültige Ziel-Playlist ID ('{targetPlaylistIdSeason1}') angegeben wurde.");
     }
 
     // Füge hier Logik für weitere Staffeln hinzu, falls targetPlaylistId_Season2 etc. gesetzt sind...
