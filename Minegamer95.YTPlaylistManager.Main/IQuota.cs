@@ -28,14 +28,9 @@ public enum QuotaType
 
 public static class QuotaTypeExtensions
 {
-  public static int GetCost<T>(this IEnumerable<T> types) where T : IQuotaCost
+  public static int GetCost<T>(this IEnumerable<T> types, IQuotaCost cost) where T : ICostType
   {
-    int totalCost = 0;
-    foreach (var type in types)
-    {
-      //totalCost += type.GetType
-    }
-    return totalCost;
+    return types.Sum(type => cost.GetCost(type.GetCostType));
   }
 
 }

@@ -20,6 +20,6 @@ public abstract class BaseVideoProvider : IVideoProvider
     });
   }
   
-  public abstract Task<IEnumerable<VideoInfo>> GetVideos();
+  public abstract Task<List<VideoInfo>> GetVideos(string id);
 
 }

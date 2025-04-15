@@ -5,17 +5,14 @@ namespace Minegamer95.YTPlaylistManager.Main.Services;
 
 public class PlaylistVideoProvider : BaseVideoProvider
 {
-  public string PlaylistId {get; set;}
-
-  public PlaylistVideoProvider(UserCredential credential, string applicationName, string playlistId = "") : base(credential,
+  public PlaylistVideoProvider(UserCredential credential, string applicationName) : base(credential,
     applicationName)
   {
-    PlaylistId = playlistId;
   }
 
-  public override async Task<IEnumerable<VideoInfo>> GetVideos()
+  public override async Task<List<VideoInfo>> GetVideos(string playlistId)
   {
-    Console.WriteLine($"\nRufe Videos von Playlist ID: {PlaylistId} ab...");
+    Console.WriteLine($"\nRufe Videos von Playlist ID: {playlistId} ab...");
     List<VideoInfo> allVideos = [];
     string? nextPageToken = null;
 
@@ -25,11 +22,16 @@ public class PlaylistVideoProvider : BaseVideoProvider
       {
         if (!QuotaManager.Instance.DeductIfAvailable(1))
         {
-          return Enumerable.Empty<VideoInfo>();
+          return [];
+        }
+        if (string.IsNullOrEmpty(playlistId))
+        {
+          Console.WriteLine("Playlist ID ist nicht gesetzt. Bitte setzen Sie die Playlist ID.");
+          return [];
         }
         
         var playlistItemsRequest = _youtubeService.PlaylistItems.List("snippet,contentDetails");
-        playlistItemsRequest.PlaylistId = PlaylistId;
+        playlistItemsRequest.PlaylistId = playlistId;
         playlistItemsRequest.MaxResults = 50; // Maximalwert
         playlistItemsRequest.PageToken = nextPageToken;
 
@@ -60,10 +62,10 @@ public class PlaylistVideoProvider : BaseVideoProvider
     }
     catch (Exception ex)
     {
-      await Console.Error.WriteLineAsync($"Fehler beim Abrufen der Videos von Playlist {PlaylistId}: {ex.Message}");
+      await Console.Error.WriteLineAsync($"Fehler beim Abrufen der Videos von Playlist {playlistId}: {ex.Message}");
     }
 
-    Console.WriteLine($"Abruf von Playlist {PlaylistId} abgeschlossen. {allVideos.Count} Videos gefunden.");
+    Console.WriteLine($"Abruf von Playlist {playlistId} abgeschlossen. {allVideos.Count} Videos gefunden.");
     return allVideos;
   }
 }

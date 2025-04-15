@@ -8,5 +8,5 @@ public interface IVideoProvider
  /// Holt Videos von einem bestimmten Anbieter.
  /// </summary>
  /// <returns></returns>
-  Task<IEnumerable<VideoInfo>> GetVideos();
+  Task<List<VideoInfo>> GetVideos(string id);
 }

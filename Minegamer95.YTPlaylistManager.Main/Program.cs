@@ -33,77 +33,96 @@ try
     // --- Updater-Instanz erstellen ---
     IPlaylistInteraction playlistService = new YouTubePlaylistService(credential, programName);
     var updater = new PlaylistUpdater(playlistService); // Verwende deine PlaylistUpdater-Klasse
-    var ytChannels = new List<IVideoProvider>();
-    var ytChannel = new ChannelVideoProvider(credential, programName, sourceChannelId);
-    var ytPlaylist = new PlaylistVideoProvider(credential, programName, sourcePlaylistId);
+    var ytChannelProvider = new ChannelVideoProvider(credential, programName);
+    var ytPlaylistProvider = new PlaylistVideoProvider(credential, programName);
     var playlists = new Dictionary<string, List<VideoInfo>>();
     var channels = new Dictionary<string, List<VideoInfo>>();
     var playlistTasks = new List<PlaylistTask>
     {
-      new(){
-        TargetPlaylistId = "PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT",
-        SourcePlaylistIds = ["PLQg5Jd-VCfKAqwgaRkQo4Ngct4TeKi0-O"],
+      new()
+      {
+        Name = "Miraculous Staffel 1 | Deutsch",
+        TargetPlaylistId = "PLQg5Jd-VCfKABwRZWY4BQxLjFjwm7u0mH",
+        SourcePlaylistIds = ["PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT"],
         Season = 1,
       }
     };
 
     foreach (var task in playlistTasks)
     {
-      
+      if (string.IsNullOrEmpty(task.TargetPlaylistId))
+      {
+        Console.WriteLine("Fehler: Keine Ziel-Playlist-ID angegeben.");
+        continue;
+      }
+      else if (playlists.ContainsKey(task.TargetPlaylistId))
+      {
+        playlists.Remove(task.TargetPlaylistId);
+      }
+
+      if (task.SourcePlaylistIds is not null)
+      {
+        foreach (var list in task.SourcePlaylistIds)
+        {
+          if (!string.IsNullOrEmpty(list) && list != task.TargetPlaylistId && !playlists.ContainsKey(list))
+          {
+            playlists.Add(list, await ytPlaylistProvider.GetVideos(list));
+          }
+        }
+      }
+
+      if (task.SourceChannelIds is not null)
+      {
+        foreach (var list in task.SourceChannelIds)
+        {
+          if (!string.IsNullOrEmpty(list) && !channels.ContainsKey(list))
+          {
+            channels.Add(list, await ytChannelProvider.GetVideos(list));
+          }
+        }
+      }
+
+      await RunTask(task);
     }
     
-    // --- Videos sammeln ---
-    List<VideoInfo> allAvailableVideos = []; // Verwende deine VideoInfo-Klasse
-
-    // Beispiel: Videos vom Kanal holen
-    if (!string.IsNullOrEmpty(sourceChannelId)) // Prüfe auf Standardwert
+    async Task RunTask(PlaylistTask task)
     {
-      var channelVideos = await ytChannel.GetVideos();
-      allAvailableVideos.AddRange(channelVideos);
+      List<VideoInfo> videos = [];
+      if (task.SourcePlaylistIds is not null)
+      {
+        foreach (var list in task.SourcePlaylistIds)
+        {
+          if (!string.IsNullOrEmpty(list) && list != task.TargetPlaylistId &&
+              playlists.TryGetValue(list, out var plVideos))
+          {
+            videos.AddRange(plVideos);
+          }
+        }
+      }
+
+      if (task.SourceChannelIds is not null)
+      {
+        foreach (var list in task.SourceChannelIds)
+        {
+          if (!string.IsNullOrEmpty(list) && channels.TryGetValue(list, out var chVideos))
+          {
+            videos.AddRange(chVideos);
+          }
+        }
+      }
+
+      videos = videos.DistinctBy(v => v.VideoId).ToList();
+      if (videos.Count == 0)
+        return;
+      var episodeExtract = task.RegexPattern is null
+        ? new RegexSeasonEpisodeExtractor()
+        : new RegexSeasonEpisodeExtractor(task.RegexPattern);
+      var episodes = episodeExtract.ExtractSeasonEpisodes(videos);
+      episodes = episodes.Where(x => task.Season is null || x.Season == task.Season)
+        .OrderBy(x => x.Season)
+        .ThenBy(x => x.Episode).ToList();
+      await updater.UpdateTargetPlaylistAsync(task.TargetPlaylistId, episodes.Select(x => x.VideoId).ToList());
     }
-
-    // Beispiel: Videos aus einer Quell-Playlist holen
-    if (!string.IsNullOrEmpty(sourcePlaylistId)) // Prüfe auf Standardwert
-    {
-      var playlistVideos = await ytPlaylist.GetVideos();
-      // Optional: Doppelte Einträge vermeiden
-      allAvailableVideos.AddRange(playlistVideos);
-      allAvailableVideos = allAvailableVideos.GroupBy(v => v.VideoId).Select(g => g.First()).ToList();
-    }
-
-    var episodeConverter = new RegexSeasonEpisodeExtractor();
-
-    var episodes = episodeConverter.ExtractSeasonEpisodes(allAvailableVideos)
-      .OrderBy(x => x.Season)
-      .ThenBy(x => x.Episode).ToList();
-    
-    Console.WriteLine($"Videos:\n\t{
-      string.Join("\n\t", episodes.Where(x => x.Season is not null)
-        .Select(x => $"Staffel {x.Season}, Episode {x.Episode}, NAME: {x.Title} ({x.VideoId})"))
-    }");
-    Console.WriteLine($"\nInsgesamt {allAvailableVideos.Count} einzigartige Videos gesammelt.");
-
-    // --- Staffeln verarbeiten ---
-
-    // Beispiel für Staffel 1
-    uint seasonToUpdate = 1;
-    if (!string.IsNullOrEmpty(targetPlaylistIdSeason1)) // Prüfe auf Standardwert
-    {
-      Console.WriteLine($"\nVerarbeite Staffel {seasonToUpdate} für Playlist {targetPlaylistIdSeason1}...");
-      List<string> season1VideoIds = episodes.Where(x => x.Season == 1).Select(x => x.VideoId).ToList();
-      // Stelle sicher, dass UpdateTargetPlaylistAsync existiert
-      await updater.UpdateTargetPlaylistAsync(targetPlaylistIdSeason1, season1VideoIds);
-    }
-    else
-    {
-      Console.WriteLine(
-        $"\nÜberspringe Staffel {seasonToUpdate}, da keine gültige Ziel-Playlist ID ('{targetPlaylistIdSeason1}') angegeben wurde.");
-    }
-
-    // Füge hier Logik für weitere Staffeln hinzu, falls targetPlaylistId_Season2 etc. gesetzt sind...
-
-
-    Console.WriteLine("\nAlle Aktionen abgeschlossen.");
   }
   else
   {

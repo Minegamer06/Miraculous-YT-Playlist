@@ -2,7 +2,7 @@ using Google.Apis.YouTube.v3.Data;
 
 namespace Minegamer95.YTPlaylistManager.Main.Services;
 
-public interface IPlaylistInteraction
+public interface IPlaylistInteraction : IQuotaCost
 {
   // Listet alle Items einer Playlist auf
   Task<List<PlaylistItem>> ListItemsAsync(string playlistId);

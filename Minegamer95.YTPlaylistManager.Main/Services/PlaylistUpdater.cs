@@ -45,7 +45,7 @@ public class PlaylistUpdater
 
       // --- Schritt 4: Aktionen ausführen ---
       Console.WriteLine($" Schritt 4: Führe Aktionen aus (DryRun={dryRun})...");
-      if (!QuotaManager.Instance.CanExecute(orderedActions.Count * 50))
+      if (!QuotaManager.Instance.CanExecute(orderedActions.GetCost(_playlistService)))
       {
         Console.WriteLine($"Quota für {orderedActions.Count} Aktionen nicht ausreichend. Abbruch.");
         return;
@@ -54,7 +54,7 @@ public class PlaylistUpdater
       foreach (var action in orderedActions)
       {
         actionCounter++;
-        Console.WriteLine($"\n Aktion {actionCounter}/{orderedActions.Count}: {action.Describe()}");
+        // Console.WriteLine($"\n Aktion {actionCounter}/{orderedActions.Count}: {action.Describe()}");
         await action.ExecuteAsync(_playlistService, dryRun);
       }
 
