@@ -8,7 +8,7 @@ using Minegamer95.YTPlaylistManager.Main.Services.Extractors;
 
 List<PlaylistTask>? LoadConfig()
 {
-  var file = new FileInfo("Config/playlist_task.json");
+  var file = new FileInfo("Config/playlist_tasks.json");
   if (!file.Exists)
   {
     Console.WriteLine($"Fehler: Die Konfigurationsdatei '{file.FullName}' wurde nicht gefunden.");
