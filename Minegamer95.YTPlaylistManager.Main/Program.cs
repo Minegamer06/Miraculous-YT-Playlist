@@ -1,9 +1,32 @@
-﻿using Google.Apis.YouTube.v3;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using Google.Apis.YouTube.v3;
 using Minegamer95.YTPlaylistManager.Main.Auth;
 using Minegamer95.YTPlaylistManager.Main.Model;
 using Minegamer95.YTPlaylistManager.Main.Services;
 using Minegamer95.YTPlaylistManager.Main.Services.Extractors;
 
+List<PlaylistTask>? LoadConfig()
+{
+  var file = new FileInfo("Config/playlist_task.json");
+  if (!file.Exists)
+  {
+    Console.WriteLine($"Fehler: Die Konfigurationsdatei '{file.FullName}' wurde nicht gefunden.");
+    return null;
+  }
+  
+  using var stream = file.OpenRead();
+  var playlistTasks = JsonSerializer.Deserialize<List<PlaylistTask>>(stream,
+    new JsonSerializerOptions
+    {
+      PropertyNameCaseInsensitive = true,
+      Converters =
+      {
+        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+      }
+    });
+  return playlistTasks;
+}
 // Pfad zur client_secret.json Datei
 const string ClientSecretsPath =
   "M:\\PC\\Projects\\Miraculous-YT-Playlist\\Minegamer95.YTPlaylistManager.Main\\client_secret.json";
@@ -14,12 +37,6 @@ const string programName = "My YouTube Playlist Manager";
 Console.WriteLine("YouTube Playlist Manager");
 Console.WriteLine("======================================================\n");
 
-// --- Konfiguration ---
-// ID des Kanals, von dem Videos geholt werden sollen
-const string sourceChannelId = ""; //"UC2D5z27XfUz5DfU7kQAehiA";
-// ID der Playlist, von der Videos geholt werden sollen
-const string sourcePlaylistId = "PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT";
-const string targetPlaylistIdSeason1 = "PLQg5Jd-VCfKAqwgaRkQo4Ngct4TeKi0-O";
 
 try
 {
@@ -37,16 +54,13 @@ try
     var ytPlaylistProvider = new PlaylistVideoProvider(credential, programName);
     var playlists = new Dictionary<string, List<VideoInfo>>();
     var channels = new Dictionary<string, List<VideoInfo>>();
-    var playlistTasks = new List<PlaylistTask>
+    var playlistTasks = LoadConfig();
+    
+    if (playlistTasks is null)
     {
-      new()
-      {
-        Name = "Miraculous Staffel 1 | Deutsch",
-        TargetPlaylistId = "PLQg5Jd-VCfKABwRZWY4BQxLjFjwm7u0mH",
-        SourcePlaylistIds = ["PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT"],
-        Season = 1,
-      }
-    };
+      Console.WriteLine("Fehler: Keine Playlist-Tasks gefunden.");
+      return;
+    }
 
     foreach (var task in playlistTasks)
     {
