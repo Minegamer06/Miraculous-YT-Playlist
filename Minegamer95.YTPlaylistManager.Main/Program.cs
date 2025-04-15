@@ -4,13 +4,14 @@ using Minegamer95.YTPlaylistManager.Main.Model;
 using Minegamer95.YTPlaylistManager.Main.Services;
 using Minegamer95.YTPlaylistManager.Main.Services.Extractors;
 
-// Definiere Konstanten direkt im Top-Level-Bereich
+// Pfad zur client_secret.json Datei
 const string ClientSecretsPath =
-  "M:\\PC\\Projects\\Miraculous-YT-Playlist\\Minegamer95.YTPlaylistManager.Main\\client_secret.json"; // Dein Pfad
-// Stelle sicher, dass die Scopes-Variable korrekt definiert ist
-string[] Scopes = { YouTubeService.Scope.Youtube }; // Youtube reicht auch
+  "M:\\PC\\Projects\\Miraculous-YT-Playlist\\Minegamer95.YTPlaylistManager.Main\\client_secret.json";
+// Benötigte Scopes für die YouTube API
+string[] Scopes = { YouTubeService.Scope.Youtube };
+const string programName = "My YouTube Playlist Manager";
 
-Console.WriteLine("YouTube Playlist Manager - Einmalige lokale Autorisierung");
+Console.WriteLine("YouTube Playlist Manager");
 Console.WriteLine("======================================================\n");
 
 // --- Konfiguration ---
@@ -18,7 +19,7 @@ Console.WriteLine("======================================================\n");
 const string sourceChannelId = ""; //"UC2D5z27XfUz5DfU7kQAehiA";
 // ID der Playlist, von der Videos geholt werden sollen
 const string sourcePlaylistId = "PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT";
-const string targetPlaylistIdSeason1 = "PLQg5Jd-VCfKAqwgaRkQo4Ngct4TeKi0-O"; // ID der Ziel-Playlist für Staffel 1 // <-- ANPASSEN! "PLQg5Jd-VCfKABwRZWY4BQxLjFjwm7u0mH"
+const string targetPlaylistIdSeason1 = "PLQg5Jd-VCfKAqwgaRkQo4Ngct4TeKi0-O";
 
 try
 {
@@ -30,11 +31,27 @@ try
     Console.WriteLine("\nAuthentifizierung erfolgreich abgeschlossen. Starte Playlist-Updater...");
 
     // --- Updater-Instanz erstellen ---
-    // Stelle sicher, dass PlaylistUpdater einen Konstruktor hat, der UserCredential akzeptiert
-    var updater = new PlaylistUpdater(credential); // Verwende deine PlaylistUpdater-Klasse
-    var ytChannel = new ChannelVideoProvider(credential, "My YouTube Playlist Manager", sourceChannelId);
-    var ytPlaylist = new PlaylistVideoProvider(credential, "My YouTube Playlist Manager", sourcePlaylistId);
+    IPlaylistInteraction playlistService = new YouTubePlaylistService(credential, programName);
+    var updater = new PlaylistUpdater(playlistService); // Verwende deine PlaylistUpdater-Klasse
+    var ytChannels = new List<IVideoProvider>();
+    var ytChannel = new ChannelVideoProvider(credential, programName, sourceChannelId);
+    var ytPlaylist = new PlaylistVideoProvider(credential, programName, sourcePlaylistId);
+    var playlists = new Dictionary<string, List<VideoInfo>>();
+    var channels = new Dictionary<string, List<VideoInfo>>();
+    var playlistTasks = new List<PlaylistTask>
+    {
+      new(){
+        TargetPlaylistId = "PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT",
+        SourcePlaylistIds = ["PLQg5Jd-VCfKAqwgaRkQo4Ngct4TeKi0-O"],
+        Season = 1,
+      }
+    };
 
+    foreach (var task in playlistTasks)
+    {
+      
+    }
+    
     // --- Videos sammeln ---
     List<VideoInfo> allAvailableVideos = []; // Verwende deine VideoInfo-Klasse
 
@@ -75,7 +92,7 @@ try
       Console.WriteLine($"\nVerarbeite Staffel {seasonToUpdate} für Playlist {targetPlaylistIdSeason1}...");
       List<string> season1VideoIds = episodes.Where(x => x.Season == 1).Select(x => x.VideoId).ToList();
       // Stelle sicher, dass UpdateTargetPlaylistAsync existiert
-      await updater.UpdateTargetPlaylistAsync(targetPlaylistIdSeason1, season1VideoIds, false);
+      await updater.UpdateTargetPlaylistAsync(targetPlaylistIdSeason1, season1VideoIds);
     }
     else
     {
@@ -96,9 +113,5 @@ try
 }
 catch (Exception ex)
 {
-  Console.Error.WriteLine($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
-  Console.Error.WriteLine(ex.StackTrace); // Mehr Details bei Bedarf
+  Console.Error.WriteLine($"Ein unerwarteter Fehler ist aufgetreten");
 }
-
-Console.WriteLine("\nDrücke eine Taste zum Beenden (nur bei lokaler Ausführung relevant).");
-Console.ReadKey(); // Behalte dies für die lokale Ausführung bei

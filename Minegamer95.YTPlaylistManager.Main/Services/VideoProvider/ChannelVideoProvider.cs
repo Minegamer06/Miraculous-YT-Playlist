@@ -17,6 +17,11 @@ public class ChannelVideoProvider : BaseVideoProvider
 
   public override async Task<IEnumerable<VideoInfo>> GetVideos()
   {
+    if (!QuotaManager.Instance.DeductIfAvailable(1))
+    {
+      return Enumerable.Empty<VideoInfo>();
+    }
+    
     if (string.IsNullOrEmpty(ChannelId))
     {
       Console.WriteLine("Kanal ID ist nicht gesetzt. Bitte setzen Sie die Kanal ID.");

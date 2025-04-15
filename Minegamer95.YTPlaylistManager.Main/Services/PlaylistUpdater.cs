@@ -3,21 +3,17 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using Minegamer95.YTPlaylistManager.Main.Model;
+using Minegamer95.YTPlaylistManager.Main.Services.Actions;
 
 namespace Minegamer95.YTPlaylistManager.Main.Services;
 
 public class PlaylistUpdater
 {
-  private const string ApplicationName = "My YouTube Playlist Manager";
-  private readonly YouTubeService _youtubeService;
+  private readonly IPlaylistInteraction _playlistService;
 
-  public PlaylistUpdater(UserCredential? credential)
+  public PlaylistUpdater(IPlaylistInteraction playlistService)
   {
-    _youtubeService = new YouTubeService(new BaseClientService.Initializer()
-    {
-      HttpClientInitializer = credential,
-      ApplicationName = ApplicationName
-    });
+    _playlistService = playlistService;
   }
 
   public async Task UpdateTargetPlaylistAsync(string targetPlaylistId, List<string> desiredVideoIds,
@@ -32,154 +28,207 @@ public class PlaylistUpdater
 
     try
     {
+      // --- Schritt 1: Aktuellen Zustand lesen ---
       Console.WriteLine(" Schritt 1: Lese aktuelle Playlist-Elemente...");
-      var currentItems = new List<PlaylistItem>();
-      string? nextPageToken = null;
-      do
-      {
-        var listRequest = _youtubeService.PlaylistItems.List("id,snippet");
-        listRequest.PlaylistId = targetPlaylistId;
-        listRequest.MaxResults = 50;
-        listRequest.PageToken = nextPageToken;
-        var listResponse = await listRequest.ExecuteAsync();
-
-        if (listResponse.Items != null)
-        {
-          currentItems.AddRange(listResponse.Items);
-        }
-
-        nextPageToken = listResponse.NextPageToken;
-      } while (nextPageToken != null);
-
+      var currentItems = await _playlistService.ListItemsAsync(targetPlaylistId);
       Console.WriteLine($" {currentItems.Count} Elemente in der Playlist gefunden.");
 
-      var changePlan = CalculateChangePlan(currentItems, desiredVideoIds);
+      // --- Schritt 2: Änderungsplan berechnen ---
+      Console.WriteLine(" Schritt 2: Berechne Änderungsplan...");
+      var changePlan = CalculateChangePlan(currentItems, desiredVideoIds, targetPlaylistId);
+      LogChangePlan(changePlan); // Optional: Plan zur Übersicht ausgeben
 
-      Console.WriteLine(" Schritt 2: Lösche nicht benötigte Elemente...");
-      foreach (var itemId in changePlan.ToDelete)
+      // --- Schritt 3: Optimierte Aktionssequenz generieren ---
+      Console.WriteLine(" Schritt 3: Generiere optimierte Aktionssequenz...");
+      var orderedActions = GenerateActionSequence(changePlan);
+      Console.WriteLine($" {orderedActions.Count} Aktionen geplant.");
+
+      // --- Schritt 4: Aktionen ausführen ---
+      Console.WriteLine($" Schritt 4: Führe Aktionen aus (DryRun={dryRun})...");
+      if (!QuotaManager.Instance.CanExecute(orderedActions.Count * 50))
       {
-        await DeletePlaylistItemAsync(itemId, dryRun);
+        Console.WriteLine($"Quota für {orderedActions.Count} Aktionen nicht ausreichend. Abbruch.");
+        return;
       }
-
-      Console.WriteLine(" Schritt 3: Aktualisiere Positionen...");
-      foreach (var item in changePlan.ToUpdate)
+      int actionCounter = 0;
+      foreach (var action in orderedActions)
       {
-        await UpdatePlaylistItemPositionAsync(item, dryRun);
-      }
-
-      Console.WriteLine(" Schritt 4: Füge neue Videos hinzu...");
-      foreach (var (id, pos) in changePlan.ToInsert)
-      {
-        await InsertVideoIntoPlaylistAsync(targetPlaylistId, id, pos, dryRun);
+        actionCounter++;
+        Console.WriteLine($"\n Aktion {actionCounter}/{orderedActions.Count}: {action.Describe()}");
+        await action.ExecuteAsync(_playlistService, dryRun);
       }
 
       Console.WriteLine($"\nAktualisierung der Playlist {targetPlaylistId} abgeschlossen.");
     }
     catch (Exception ex)
     {
-      await Console.Error.WriteLineAsync($"Fehler beim Aktualisieren der Playlist {targetPlaylistId}: {ex.Message}");
+      await Console.Error.WriteLineAsync(
+        $"Fehler beim Aktualisieren der Playlist {targetPlaylistId}: {ex.Message}\n{ex.StackTrace}");
+      // Gib mehr Details aus für die Fehlersuche
     }
   }
 
-  private PlaylistChangePlan CalculateChangePlan(List<PlaylistItem> currentItems, List<string> desiredVideoIds)
+  private PlaylistChangePlan CalculateChangePlan(List<PlaylistItem> currentItems, List<string> desiredVideoIds,
+    string playlistId)
   {
-    var currentDict = currentItems.ToDictionary(item => item.Snippet.ResourceId.VideoId);
-
-    var videosToDelete = new List<string>();
-    var videosToUpdate = new List<PlaylistItem>();
-    var videosToAdd = new List<(string videoId, uint Position)>();
-
+    // Sicherstellen, dass alle Items eine PlaylistId haben (wichtig für Updates)
     foreach (var item in currentItems)
     {
-      var videoId = item.Snippet.ResourceId.VideoId;
-      var position = item.Snippet.Position;
-      
-      if (!desiredVideoIds.Contains(videoId))
+      if (item.Snippet != null && string.IsNullOrEmpty(item.Snippet.PlaylistId))
       {
-        videosToDelete.Add(item.Id);
-      }
-      else if (desiredVideoIds.IndexOf(videoId) != position)
-      {
-        item.Snippet.Position = (uint)desiredVideoIds.IndexOf(videoId);
-        videosToUpdate.Add(item);
+        item.Snippet.PlaylistId = playlistId;
       }
     }
-    
-    foreach (var id in desiredVideoIds)
+
+    var videosToDelete = new List<PlaylistItem>();
+    var videosToUpdate = new List<PlaylistItem>();
+    var videosToInsert = new Dictionary<string, long>(); // videoId -> targetPosition
+
+    // Durch aktuelle Items iterieren
+    foreach (var item in currentItems.GroupBy(item => item.Snippet?.ResourceId?.VideoId))
     {
-      if (!currentDict.ContainsKey(id))
+      var videoId = item.Key!;
+      var desiredPosition = desiredVideoIds.IndexOf(videoId);
+      PlaylistItem video = item.FirstOrDefault(i => i.Snippet?.Position == desiredPosition, item.First());
+      var currentPosition = video.Snippet.Position ?? -1; // Aktuelle Position
+
+      if (item.Count() > 1)
       {
-        videosToAdd.Add((id, (uint)desiredVideoIds.IndexOf(id)));
-      }
-    }
-    return new PlaylistChangePlan(videosToDelete, videosToUpdate, videosToAdd);
-  }
-
-  private async Task UpdatePlaylistItemPositionAsync(PlaylistItem updateRequest, bool dryRun)
-  {
-    if (dryRun)
-    {
-      Console.WriteLine($"[DryRun] Würde Position von Item {updateRequest.Snippet?.ResourceId} - {updateRequest.Snippet?.Title} auf {updateRequest.Snippet?.Position} setzen.");
-      return;
-    }
-
-    try
-    {
-      await _youtubeService.PlaylistItems.Update(updateRequest, "snippet").ExecuteAsync();
-    }
-    catch
-    {
-      await Console.Error.WriteLineAsync($" Fehler beim Aktualisieren der Position von Item {updateRequest.Snippet?.ResourceId} - {updateRequest.Snippet?.Title}");
-    }
-  }
-
-  private async Task DeletePlaylistItemAsync(string itemId, bool dryRun)
-  {
-    if (dryRun)
-    {
-      Console.WriteLine($"[DryRun] Würde Item {itemId} löschen.");
-      return;
-    }
-
-    try
-    {
-      await _youtubeService.PlaylistItems.Delete(itemId).ExecuteAsync();
-    }
-    catch (Exception ex)
-    {
-      await Console.Error.WriteLineAsync($" Fehler beim Löschen von Item {itemId}: {ex.Message}");
-    }
-  }
-
-  private async Task InsertVideoIntoPlaylistAsync(string playlistId, string videoId, uint position, bool dryRun)
-  {
-    if (dryRun)
-    {
-      Console.WriteLine($"[DryRun] Würde Video {videoId} an Position {position} einfügen.");
-      return;
-    }
-
-    var newPlaylistItem = new PlaylistItem
-    {
-      Snippet = new PlaylistItemSnippet
-      {
-        PlaylistId = playlistId,
-        ResourceId = new ResourceId
+        foreach (var v in item.Where(i => i != video))
         {
-          Kind = "youtube#video",
-          VideoId = videoId
-        },
-        Position = position
+          videosToDelete.Add(v); // Lösche alle Duplikate
+        }
       }
-    };
 
-    try
-    {
-      await _youtubeService.PlaylistItems.Insert(newPlaylistItem, "snippet").ExecuteAsync();
+
+      if (currentPosition == -1)
+      {
+        Console.WriteLine($"WARNUNG: Video {videoId} hat keine Position in der Playlist. Wird ignoriert.");
+        continue; // Items ohne Position können wir nicht sinnvoll verarbeiten
+      }
+      
+      if (desiredPosition == -1) // Nicht mehr in der gewünschten Liste? -> Löschen
+      {
+        videosToDelete.Add(video);
+      }
+      // In der gewünschten Liste, aber an der falschen Position? -> Update planen
+      // Wichtig: Vergleiche long mit int, Konvertierung ist sicher hier.
+      else if (currentPosition != desiredPosition)
+      {
+        // Erstelle eine *Kopie* oder setze nur die Zielposition im Snippet
+        // Vorsicht: Ändere nicht das Original-Item direkt, wenn es noch woanders gebraucht wird.
+        // Hier setzen wir die Zielposition für den Plan.
+        // Der Update-API-Call braucht sowieso ein neues Snippet-Objekt.
+        var itemForUpdatePlan = new PlaylistItem
+        {
+          Id = video.Id,
+          Snippet = new PlaylistItemSnippet
+          {
+            PlaylistId = video.Snippet.PlaylistId, // Wichtig für Update Action
+            ResourceId = video.Snippet.ResourceId, // Wichtig für Update Action
+            Position = desiredPosition // Zielposition setzen
+            // Andere Snippet-Teile wie Titel sind für die Positionsänderung irrelevant
+          }
+        };
+        videosToUpdate.Add(itemForUpdatePlan);
+      }
     }
-    catch (Exception exInsert)
+
+    // Durch gewünschte IDs iterieren, um fehlende zu finden -> Insert planen
+    for (int i = 0; i < desiredVideoIds.Count; i++)
     {
-      await Console.Error.WriteLineAsync($" Fehler beim Hinzufügen von Video {videoId}: {exInsert.Message}");
+      var desiredVideoId = desiredVideoIds[i];
+      if (currentItems.All(x => x.Snippet.ResourceId.VideoId != desiredVideoId))
+      {
+        videosToInsert.Add(desiredVideoId, i); // videoId -> targetPosition
+      }
     }
+
+    return new PlaylistChangePlan(playlistId, videosToDelete, videosToUpdate, videosToInsert);
+  }
+
+  private List<IPlaylistAction> GenerateActionSequence(PlaylistChangePlan plan)
+  {
+    var actions = new List<IPlaylistAction>();
+
+    // --- Phase 1: Plan Deletions (Descending Order by Current Position) ---
+    var sortedDeletes = plan.ToDelete
+      .Where(item =>
+        item.Snippet?.Position != null && !string.IsNullOrEmpty(item.Id)) // Nur löschen, wenn Position & ID bekannt
+      .OrderByDescending(item => item.Snippet.Position!.Value)
+      .ToList();
+
+    Console.WriteLine($"\n--- Planungsphase: Löschungen ({sortedDeletes.Count}) ---");
+    foreach (var itemToDelete in sortedDeletes)
+    {
+      Console.WriteLine(
+        $" Planung Löschung für: {itemToDelete.Snippet.ResourceId.VideoId} (Pos: {itemToDelete.Snippet.Position.Value})");
+      actions.Add(new DeleteAction(itemToDelete));
+    }
+
+    // --- Phase 2: Plan Updates and Inserts (Ascending Order by Target Position) ---
+    var placements = new List<(string videoId, long targetPosition, PlaylistItem? originalItemForUpdate)>();
+
+    // Updates hinzufügen (originalItem enthält Zielposition im Snippet)
+    foreach (var itemToUpdate in plan.ToUpdate)
+    {
+      if (itemToUpdate.Snippet?.Position == null || string.IsNullOrEmpty(itemToUpdate.Id))
+        continue; // Zielposition & ID muss bekannt sein
+      placements.Add((itemToUpdate.Snippet.ResourceId.VideoId, itemToUpdate.Snippet.Position.Value, itemToUpdate));
+    }
+
+    // Inserts hinzufügen
+    foreach (var kvp in plan.ToInsert)
+    {
+      placements.Add((kvp.Key, kvp.Value, null)); // Kein originalItem bei Insert
+    }
+
+    // Sortieren nach Zielposition (aufsteigend)
+    var sortedPlacements = placements.OrderBy(p => p.targetPosition).ToList();
+
+    Console.WriteLine($"\n--- Planungsphase: Platzierungen ({sortedPlacements.Count}) ---");
+    foreach (var placement in sortedPlacements)
+    {
+      string videoId = placement.videoId;
+      long targetPosition = placement.targetPosition;
+      PlaylistItem? originalItemForUpdate = placement.originalItemForUpdate;
+
+      if (originalItemForUpdate != null) // Es ist ein Update (Move)
+      {
+        Console.WriteLine($" Planung Update für: {videoId} nach Ziel-Pos {targetPosition}");
+        // Die UpdateAction braucht das Item mit ID und die Zielposition
+        actions.Add(new UpdateAction(originalItemForUpdate, targetPosition));
+      }
+      else // Es ist ein Insert
+      {
+        Console.WriteLine($" Planung Insert für: {videoId} an Ziel-Pos {targetPosition}");
+        string playlistId = plan.PlaylistId; // Playlist ID aus dem Plan
+        if (playlistId == "FEHLENDE_PLAYLIST_ID")
+        {
+          Console.Error.WriteLine($"FEHLER: Playlist ID konnte nicht für Insert von {videoId} ermittelt werden!");
+          // Aktion überspringen oder Fehler werfen
+          continue;
+        }
+
+        actions.Add(new InsertAction(videoId, targetPosition, playlistId));
+      }
+    }
+
+    return actions;
+  }
+
+  // Hilfsmethode zum Loggen des Change Plans (Optional)
+  private void LogChangePlan(PlaylistChangePlan plan)
+  {
+    Console.WriteLine("\n--- Berechneter Änderungsplan ---");
+    Console.WriteLine($" Zu Löschen ({plan.ToDelete.Count}):");
+    foreach (var item in plan.ToDelete)
+      Console.WriteLine($"  - {item.Snippet?.ResourceId?.VideoId} (Pos: {item.Snippet?.Position})");
+    Console.WriteLine($" Zu Aktualisieren ({plan.ToUpdate.Count}):");
+    foreach (var item in plan.ToUpdate)
+      Console.WriteLine($"  - {item.Snippet?.ResourceId?.VideoId} (ZielPos: {item.Snippet?.Position})");
+    Console.WriteLine($" Zu Einfügen ({plan.ToInsert.Count}):");
+    foreach (var kvp in plan.ToInsert) Console.WriteLine($"  - {kvp.Key} (ZielPos: {kvp.Value})");
+    Console.WriteLine("---------------------------------");
   }
 }

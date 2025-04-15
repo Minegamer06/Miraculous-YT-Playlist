@@ -23,6 +23,11 @@ public class PlaylistVideoProvider : BaseVideoProvider
     {
       do
       {
+        if (!QuotaManager.Instance.DeductIfAvailable(1))
+        {
+          return Enumerable.Empty<VideoInfo>();
+        }
+        
         var playlistItemsRequest = _youtubeService.PlaylistItems.List("snippet,contentDetails");
         playlistItemsRequest.PlaylistId = PlaylistId;
         playlistItemsRequest.MaxResults = 50; // Maximalwert
