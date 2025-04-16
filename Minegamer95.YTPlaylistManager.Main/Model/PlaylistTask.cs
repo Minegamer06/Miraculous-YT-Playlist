@@ -3,6 +3,7 @@ namespace Minegamer95.YTPlaylistManager.Main.Model;
 public class PlaylistTask
 {
   public string? Name { get; set; }
+  public bool IsFinished { get; set; }
   public required string TargetPlaylistId { get; set; }
   public List<string>? SourcePlaylistIds { get; set; }
   public List<string>? SourceChannelIds { get; set; }

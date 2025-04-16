@@ -6,8 +6,8 @@ namespace Minegamer95.YTPlaylistManager.Main.Services.Extractors;
 public class RegexSeasonEpisodeExtractor : ISeasonEpisodeExtractor
 {
   private readonly Regex _regex;
-  private readonly string _EpisodeGroupName;
-  private readonly string _SeasonGroupName;
+  private readonly string _episodeGroupName;
+  private readonly string _seasonGroupName;
 
   /// <summary>
   /// Erstellt einen neuen RegexSeasonEpisodeExtractor mit einem angegebenen Regex-Muster und optionalem Timeout.
@@ -19,8 +19,8 @@ public class RegexSeasonEpisodeExtractor : ISeasonEpisodeExtractor
   public RegexSeasonEpisodeExtractor(string pattern = RegexPatterns.SeasonEpisodePattern, string episodeGroupName = "episode",
     string seasonGroupName = "season", TimeSpan? timeout = null)
   {
-    _EpisodeGroupName = episodeGroupName;
-    _SeasonGroupName = seasonGroupName;
+    _episodeGroupName = episodeGroupName;
+    _seasonGroupName = seasonGroupName;
     _regex = new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, timeout ?? TimeSpan.FromSeconds(2));
   }
 
@@ -32,12 +32,12 @@ public class RegexSeasonEpisodeExtractor : ISeasonEpisodeExtractor
 
     var match = _regex.Match(videoInfo.Title);
     if (!match.Success) return episodeInfo;
-    if (int.TryParse(match.Groups[_SeasonGroupName].Value, out int season))
+    if (int.TryParse(match.Groups[_seasonGroupName].Value, out var season))
     {
       episodeInfo.Season = season;
     }
 
-    if (int.TryParse(match.Groups[_EpisodeGroupName].Value, out int episode))
+    if (int.TryParse(match.Groups[_episodeGroupName].Value, out var episode))
     {
       episodeInfo.Episode = episode;
     }

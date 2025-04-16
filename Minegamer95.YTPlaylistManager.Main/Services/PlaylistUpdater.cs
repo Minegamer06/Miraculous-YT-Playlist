@@ -28,6 +28,9 @@ public class PlaylistUpdater
 
     try
     {
+      // --- Schritt 0: For now we assume that the target playlist can not contian duplicates ---
+      desiredVideoIds = desiredVideoIds.Distinct().ToList();
+      
       // --- Schritt 1: Aktuellen Zustand lesen ---
       Console.WriteLine(" Schritt 1: Lese aktuelle Playlist-Elemente...");
       var currentItems = await _playlistService.ListItemsAsync(targetPlaylistId);

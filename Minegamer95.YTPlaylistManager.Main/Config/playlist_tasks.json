@@ -1,9 +1,58 @@
-[ {
-  "Name" : "Miraculous Staffel 1 | Deutsch",
-  "TargetPlaylistId" : "PLQg5Jd-VCfKABwRZWY4BQxLjFjwm7u0mH",
-  "SourcePlaylistIds" : [ "PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT" ],
-  "SourceChannelIds" : null,
-  "PredefinedEpisodes" : null,
-  "Season" : 1,
-  "RegexPattern" : null
-} ]
+[
+  {
+    "Name": "Miraculous Staffel 1 | Deutsch",
+    "IsFinished": true,
+    "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKABwRZWY4BQxLjFjwm7u0mH",
+    "SourcePlaylistIds": [
+      "https://youtube.com/playlist?list=PLDGA85Y1JsmNIo_mKcsWvzKAFRPah6mqT"
+    ],
+    "SourceChannelIds": null,
+    "PredefinedEpisodes": null,
+    "Season": 1,
+    "RegexPattern": null
+  },
+  {
+    "Name": "Miraculous Staffel 2 | Deutsch",
+    "IsFinished": true,
+    "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKAgp3nkN9geapc2kr5NKFtd",
+    "SourcePlaylistIds": [
+      "https://youtube.com/playlist?list=PLDGA85Y1JsmMPdCpx9KcwEbgwl1Jr7Iz4"
+    ],
+    "SourceChannelIds": null,    
+    "PredefinedEpisodes": [
+      {
+        "Season": 2,
+        "Episode": 4,
+        "VideoId": "https://youtu.be/1GR5rAXI11k?feature=shared",
+        "Title": null,
+        "Description": null,
+        "PublishedAt": null
+      }
+    ],
+    "Season": 2,
+    "RegexPattern": null
+  },
+  {
+    "Name": "Miraculous Staffel 3 | Deutsch",
+    "IsFinished": true,
+    "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKCSCNHO5YFlRoUEhCxpQUad",
+    "SourcePlaylistIds": [
+      "https://youtube.com/playlist?list=PLDGA85Y1JsmM5bsgrPTD-FInnHoRNf_o0"
+    ],
+    "SourceChannelIds": null,
+    "PredefinedEpisodes": null,
+    "Season": 3,
+    "RegexPattern": null
+  },
+  {
+    "Name": "Miraculous Staffel 4 | Deutsch",
+    "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKAHOIwqvgww2GMYC2h6xx9K",
+    "SourcePlaylistIds": [
+      "https://youtube.com/playlist?list=PLDGA85Y1JsmMc5q4x8XbHSJd-jKs5Wr6M"
+    ],
+    "SourceChannelIds": null,
+    "PredefinedEpisodes": null,
+    "Season": 4,
+    "RegexPattern": null
+  }
+]

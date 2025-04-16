@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
 using Google.Apis.YouTube.v3;
 using Minegamer95.YTPlaylistManager.Main.Auth;
 using Minegamer95.YTPlaylistManager.Main.Model;
@@ -14,7 +15,7 @@ List<PlaylistTask>? LoadConfig()
     Console.WriteLine($"Fehler: Die Konfigurationsdatei '{file.FullName}' wurde nicht gefunden.");
     return null;
   }
-  
+
   using var stream = file.OpenRead();
   var playlistTasks = JsonSerializer.Deserialize<List<PlaylistTask>>(stream,
     new JsonSerializerOptions
@@ -25,8 +26,62 @@ List<PlaylistTask>? LoadConfig()
         new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
       }
     });
-  return playlistTasks;
+  if (playlistTasks != null)
+  {
+    foreach (var task in playlistTasks)
+    {
+      if (task.PredefinedEpisodes is not null)
+      {
+        foreach (var vid in task.PredefinedEpisodes)
+        {
+          vid.VideoId = ParseYtUrl(vid.VideoId, true);
+        }
+      }
+    }
+
+    return playlistTasks;
+  }
+
+  return null;
 }
+
+string ParseYtUrl(string url, bool isSingleVideo = false)
+{
+  url = url.Trim();
+
+  if (!url.Contains("youtube.com") && !url.Contains("youtu.be"))
+    return url;
+
+  try
+  {
+    var uri = new Uri(url);
+    var query = HttpUtility.ParseQueryString(uri.Query);
+
+    if (uri.Host.Contains("youtu.be"))
+    {
+      // Shortlink: Video-ID ist im Pfad
+      return uri.AbsolutePath.Trim('/');
+    }
+
+    if (isSingleVideo)
+    {
+      return query.Get("v") ?? url; // Nicht "watch", sondern "v"
+    }
+    else
+    {
+      return query.Get("list") ?? url;
+    }
+  }
+  catch (UriFormatException)
+  {
+    return url;
+  }
+  catch
+  {
+    return url;
+  }
+}
+
 // Pfad zur client_secret.json Datei
 const string ClientSecretsPath =
   "M:\\PC\\Projects\\Miraculous-YT-Playlist\\Minegamer95.YTPlaylistManager.Main\\client_secret.json";
@@ -55,7 +110,7 @@ try
     var playlists = new Dictionary<string, List<VideoInfo>>();
     var channels = new Dictionary<string, List<VideoInfo>>();
     var playlistTasks = LoadConfig();
-    
+
     if (playlistTasks is null)
     {
       Console.WriteLine("Fehler: Keine Playlist-Tasks gefunden.");
@@ -64,41 +119,59 @@ try
 
     foreach (var task in playlistTasks)
     {
+      if (await PrepareTask(task) is not null)
+        await RunTask(task);
+    }
+
+    async Task<PlaylistTask?> PrepareTask(PlaylistTask task)
+    {
+      // Wir brauchen nichts zu tun, wenn die Playlist bereits fertig ist
+      if (task.IsFinished)
+        return null;
+      // Die Ids der Playlist Extrahieren, falls sie als URL angegeben sind, leere Strings entfernen
+      task.SourcePlaylistIds = task.SourcePlaylistIds?.Select(x => ParseYtUrl(x))
+        .Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
+      task.SourceChannelIds = task.SourceChannelIds?.Select(x => ParseYtUrl(x))
+        .Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
+      task.TargetPlaylistId = ParseYtUrl(task.TargetPlaylistId);
+
       if (string.IsNullOrEmpty(task.TargetPlaylistId))
       {
         Console.WriteLine("Fehler: Keine Ziel-Playlist-ID angegeben.");
-        continue;
+        return null;
       }
-      else if (playlists.ContainsKey(task.TargetPlaylistId))
+
+      // Es wird sich möglicherweise etwas an der Playlist ändern, daher den Cache löschen
+      if (playlists.ContainsKey(task.TargetPlaylistId))
       {
         playlists.Remove(task.TargetPlaylistId);
       }
 
+      // Wir dürfen die Ziel-Playlist nicht als Quelle verwenden
+      if (task.SourcePlaylistIds?.Contains(task.TargetPlaylistId) ?? false)
+      {
+        task.SourcePlaylistIds.Remove(task.TargetPlaylistId);
+      }
+
       if (task.SourcePlaylistIds is not null)
       {
-        foreach (var list in task.SourcePlaylistIds)
+        foreach (var list in task.SourcePlaylistIds.Where(list => !playlists.ContainsKey(list)))
         {
-          if (!string.IsNullOrEmpty(list) && list != task.TargetPlaylistId && !playlists.ContainsKey(list))
-          {
-            playlists.Add(list, await ytPlaylistProvider.GetVideos(list));
-          }
+          playlists.Add(list, await ytPlaylistProvider.GetVideos(list));
         }
       }
 
       if (task.SourceChannelIds is not null)
       {
-        foreach (var list in task.SourceChannelIds)
+        foreach (var list in task.SourceChannelIds.Where(list => !channels.ContainsKey(list)))
         {
-          if (!string.IsNullOrEmpty(list) && !channels.ContainsKey(list))
-          {
-            channels.Add(list, await ytChannelProvider.GetVideos(list));
-          }
+          channels.Add(list, await ytChannelProvider.GetVideos(list));
         }
       }
 
-      await RunTask(task);
+      return task;
     }
-    
+
     async Task RunTask(PlaylistTask task)
     {
       List<VideoInfo> videos = [];
@@ -106,11 +179,7 @@ try
       {
         foreach (var list in task.SourcePlaylistIds)
         {
-          if (!string.IsNullOrEmpty(list) && list != task.TargetPlaylistId &&
-              playlists.TryGetValue(list, out var plVideos))
-          {
-            videos.AddRange(plVideos);
-          }
+          videos.AddRange(playlists[list]);
         }
       }
 
@@ -118,24 +187,30 @@ try
       {
         foreach (var list in task.SourceChannelIds)
         {
-          if (!string.IsNullOrEmpty(list) && channels.TryGetValue(list, out var chVideos))
-          {
-            videos.AddRange(chVideos);
-          }
+          videos.AddRange(channels[list]);
         }
       }
 
       videos = videos.DistinctBy(v => v.VideoId).ToList();
-      if (videos.Count == 0)
+      if (videos.Count == 0 && task.PredefinedEpisodes is null)
         return;
+
       var episodeExtract = task.RegexPattern is null
         ? new RegexSeasonEpisodeExtractor()
         : new RegexSeasonEpisodeExtractor(task.RegexPattern);
-      var episodes = episodeExtract.ExtractSeasonEpisodes(videos);
+
+      var episodes =
+        episodeExtract.ExtractSeasonEpisodes(videos.Where(x =>
+          task?.PredefinedEpisodes?.All(y => y.VideoId != x.VideoId) ?? true));
+
+      if (task.PredefinedEpisodes is not null)
+        episodes.AddRange(task.PredefinedEpisodes);
+
       episodes = episodes.Where(x => task.Season is null || x.Season == task.Season)
         .OrderBy(x => x.Season)
         .ThenBy(x => x.Episode).ToList();
-      await updater.UpdateTargetPlaylistAsync(task.TargetPlaylistId, episodes.Select(x => x.VideoId).ToList());
+
+      await updater.UpdateTargetPlaylistAsync(task.TargetPlaylistId, episodes.Select(x => x.VideoId).ToList(), true);
     }
   }
   else
