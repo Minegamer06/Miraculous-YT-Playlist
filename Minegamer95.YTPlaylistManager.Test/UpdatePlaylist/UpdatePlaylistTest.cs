@@ -5,80 +5,49 @@ namespace Minegamer95.YTPlaylistManager.Test.UpdatePlaylist;
 
 public class UpdatePlaylistTest
 {
-  private readonly SimulatedPlaylistService _simulatedPlaylistService;
+  public static IEnumerable<object[]> TestDataWrapper => TestData.Select(testCase => new object[] { testCase });
 
-  private readonly List<string> _targetOrder =
-  [
-    "1a6e5-Tj6vI",
-    "MXFQ3L-yQtA",
-    "QT0RJhsuVfA",
-    "ByftEwigC5I",
-    "KYq2km_1Z3k",
-    "6vXzGbJnuIw",
-    "Oqg7hmZkHh0",
-    "_Uy4IcElxN4",
-    "mjdSJvH6Fs4",
-    "D4XnbL4oIsU",
-    "3EWc60ADkFI",
-    "_H8QNtcXbI8",
-    "DTLq6NYVWEc",
-    "GBNjT3z_dUo",
-    "RG28Ofw8hXE",
-    "iDk3qcXWYzE",
-    "VHwODRfrF54",
-    "IILvmV66l4c",
-    "UH7bnjZWoME",
-    "DJOM4_Pq_SI",
-    "o24wF4JPzg4",
-    "eOa0pRLvc0k",
-    "HgoERh3diko",
-    "Xqy3hCvPlkY",
-    "yUB1iy4vHdc",
-    "xPSI2NEEq9s",
-  ];
-
-  public UpdatePlaylistTest()
-  {
-    var items = new List<(string videoId, long position)>
+  private static readonly List<TestCase> TestData = [
+    new()
     {
-      ("1a6e5-Tj6vI", 0),
-      ("QT0RJhsuVfA", 1),
-      ("Oqg7hmZkHh0", 2),
-      ("D4XnbL4oIsU", 3),
-      ("MXFQ3L-yQtA", 4),
-      ("_Uy4IcElxN4", 5),
-      ("3EWc60ADkFI", 6),
-      ("DTLq6NYVWEc", 7),
-      ("GBNjT3z_dUo", 8),
-      ("iDk3qcXWYzE", 9),
-      ("DJOM4_Pq_SI", 10),
-      ("ByftEwigC5I", 11),
-      ("xPSI2NEEq9s", 12),
-      ("VHwODRfrF54", 13),
-      ("eOa0pRLvc0k", 14),
-      ("9mgiEei1Zrc", 15),
-      ("kdt1KSjJStg", 16),
-      ("vcqWPCt2TmE", 17),
-      ("o92P-iC6vns", 18),
-      ("fSFCh6EbxmI", 19),
-      ("o92P-iC6vns", 20),
-    };
-    _simulatedPlaylistService = new SimulatedPlaylistService(items);
-  }
-
-  [Fact]
-  public async Task UpdateOrderIsCorrect()
+        Name = "Lösche ersten Playlist-Eintrag aus Target"
+      , Source = ["_bAX0Cyco1Q","p5sFGwcMVGE","ioYM-RQnua4","MpLFgMxiixg","_-1XdcVc8CE","J8wNUWHj4Qc","wold1namm-g","Dc8PHdtTbSk","_E3_xHQXm44","jKUllSICWrY","QLsRcsJEXqE","o1LP5aFtH2U","N76Y1KZucvQ","ZSYsvX3BwBg","S3cZBnOi0BQ","PfI3Azft9L0","ssUnxAuj98w","zngDilsCsN4","3m6exxR-sLM","P1rqEin-7Gw","yo-qPKYoIK0","lnaXridzVZo","RvK1o3QDV_0","NO6KJyC9rM8","Gy9lwl9yjIM","c45ugOVqSV4"]
+      , Target  = ["p5sFGwcMVGE","ioYM-RQnua4","MpLFgMxiixg","_-1XdcVc8CE","J8wNUWHj4Qc","wold1namm-g","Dc8PHdtTbSk","_E3_xHQXm44","jKUllSICWrY","QLsRcsJEXqE","o1LP5aFtH2U","N76Y1KZucvQ","ZSYsvX3BwBg","S3cZBnOi0BQ","PfI3Azft9L0","ssUnxAuj98w","zngDilsCsN4","3m6exxR-sLM","P1rqEin-7Gw","yo-qPKYoIK0","lnaXridzVZo","RvK1o3QDV_0","NO6KJyC9rM8","Gy9lwl9yjIM","c45ugOVqSV4"]
+      , RemoveCount = 1
+      , UpdateCount = 0
+      , AddCount = 0
+    }
+  ];
+  
+  
+  [Theory]
+  [MemberData(nameof(TestDataWrapper))]
+  public async Task UpdateOrderIsCorrect(TestCase testCase)
   {
-    var updater = new PlaylistUpdater(_simulatedPlaylistService); // Verwende deine PlaylistUpdater-Klasse
-    await updater.UpdateTargetPlaylistAsync("test", _targetOrder);
-    var final = _simulatedPlaylistService.GetFinalSimulatedPositions();
-    Assert.Equal(_targetOrder.Count, final.Count);
+    var service = testCase.GetPlaylistService();
+    var updater = new PlaylistUpdater(service); // Verwende deine PlaylistUpdater-Klasse
+    await updater.UpdateTargetPlaylistAsync("test", testCase.Target);
+    var final = service.GetFinalSimulatedPositions();
+    Assert.Equal(testCase.Target.Count, final.Count);
 
     Assert.All(final, item =>
     {
-      var target = _targetOrder.IndexOf(item.Key);
+      var target = testCase.Target.IndexOf(item.Key);
       Assert.Equal(target, item.Value);
       Assert.NotEqual(-1, target);
     });
+  }
+
+  [Theory]
+  [MemberData(nameof(TestDataWrapper))]
+  public async Task CalcChangPlanCheck(TestCase testCase)
+  {
+    var service = testCase.GetPlaylistService();
+    var source = await service.ListItemsAsync("");
+    var updater = new PlaylistUpdater(service);
+    var changePlan = updater.CalculateChangePlan(source, testCase.Target, "test");
+    Assert.Equal(testCase.AddCount, changePlan.ToInsert.Count);
+    Assert.Equal(testCase.RemoveCount, changePlan.ToDelete.Count);
+    Assert.Equal(testCase.UpdateCount, changePlan.ToUpdate.Count);
   }
 }

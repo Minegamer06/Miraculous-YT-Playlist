@@ -71,22 +71,29 @@ public class PlaylistUpdater
     }
   }
 
-  private PlaylistChangePlan CalculateChangePlan(List<PlaylistItem> currentItems, List<string> desiredVideoIds,
+  public PlaylistChangePlan CalculateChangePlan(List<PlaylistItem> currentItems, List<string> desiredVideoIds,
     string playlistId)
   {
-    // Sicherstellen, dass alle Items eine PlaylistId haben (wichtig für Updates)
-    foreach (var item in currentItems)
-    {
-      if (item.Snippet != null && string.IsNullOrEmpty(item.Snippet.PlaylistId))
-      {
-        item.Snippet.PlaylistId = playlistId;
-      }
-    }
-
     var videosToDelete = new List<PlaylistItem>();
     var videosToUpdate = new List<PlaylistItem>();
     var videosToInsert = new Dictionary<string, long>(); // videoId -> targetPosition
+    var groupedItems = currentItems.GroupBy(item => item.Snippet?.ResourceId?.VideoId).ToList();
+    var simulator = new PlaylistSimulator(groupedItems.Select(x => x.First()).ToList(), desiredVideoIds, playlistId);
 
+
+    // --- Schritt 1: Ungewolltes löschen ---
+    foreach (var item in groupedItems)
+    {
+      if (desiredVideoIds.Contains(item.Key!))
+        continue;
+
+      foreach (var VARIABLE in COLLECTION)
+      {
+        
+      }
+      simulator.RemoveItem()
+        
+    }
     // Durch aktuelle Items iterieren
     foreach (var item in currentItems.GroupBy(item => item.Snippet?.ResourceId?.VideoId))
     {
