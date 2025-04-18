@@ -20,7 +20,7 @@ public class PlaylistSimulator
     }
   }
 
-  public bool AddByVideoId(string videoId, int targetPos)
+  public int AddByVideoId(string videoId, int targetPos)
   {
     var item = new PlaylistItem
     {
@@ -38,14 +38,16 @@ public class PlaylistSimulator
     return AddItem(item, targetPos);
   }
 
-  public bool AddItem(PlaylistItem item, int targetPos)
+  public int AddItem(PlaylistItem? item, int targetPos)
   {
-    if (item.Snippet?.Position is null)
-      return false;
+    if (item?.Snippet?.Position is null)
+      return -1;
 
-    // Grenze an Anzahl der Items
-    var pos = _items.Where(i => i.TargetPosition < targetPos).MaxBy(i => i.TargetPosition)?.CurrentPositon ?? 0;
-    pos = Math.Clamp(pos, 0, _items.Count);
+    var pos = _items.FindIndex(i => i.TargetPosition >= targetPos);
+    // Falls kein Element gefunden wird, dann setze pos auf das Ende der Liste.
+    if (pos == -1)
+      pos = _items.Count;
+    
     var plItem = new PlaylistSimulatorItem
     {
       Item = item,
@@ -53,7 +55,7 @@ public class PlaylistSimulator
     };
     _items.Insert(pos, plItem);
     ReindexAll();
-    return true;
+    return pos;
   }
 
   public bool RemoveByVideoId(string videoId)
@@ -73,21 +75,33 @@ public class PlaylistSimulator
     return true;
   }
 
-  public bool UpdatePosByVideoId(string videoId, int newPos)
+  /// <summary>
+  /// Aktualisiert die Position eines Videos in der Playlist.
+  /// </summary>
+  /// <param name="videoId">The VideoId to move.</param>
+  /// <param name="newPos">The target Position for the Video.</param>
+  /// <returns>The new Real Positon to use for the update Request.</returns>
+  public int UpdatePosByVideoId(string videoId, int newPos)
   {
     var item = _items.FirstOrDefault(x => x.Item.Snippet?.ResourceId?.VideoId == videoId)?.Item;
-    return item is not null && UpdatePosItem(item, newPos);
+    return UpdatePosItem(item, newPos);
   }
 
-  public bool UpdatePosItem(PlaylistItem item, int newPos)
+  /// <summary>
+  /// Aktualisiert die Position eines Videos in der Playlist.
+  /// </summary>
+  /// <param name="item">The Playlist Item to move.</param>
+  /// <param name="newPos">The target Position for the Video.</param>
+  /// <returns>The new Real Positon to use for the update Request.</returns>
+  public int UpdatePosItem(PlaylistItem? item, int newPos)
   {
-    if (item.Snippet?.Position is null)
-      return false;
+    if (item?.Snippet?.Position is null)
+      return -1;
 
     // altes Item finden
     var currentIndex = _items.FindIndex(x => x.Item == item);
     if (currentIndex == -1)
-      return false;
+      return -1;
 
     // aus Liste rausnehmen
     _items.RemoveAt(currentIndex);
@@ -97,6 +111,11 @@ public class PlaylistSimulator
     return AddItem(item, newPos);
   }
 
+  public bool ItemsIsOnTargetPos(PlaylistItem? item)
+  {
+    var simItem = _items.FirstOrDefault(x => x.Item == item);
+    return simItem is not null && simItem.CurrentPositon == simItem.TargetPosition;
+  }
   public int GetItemPosByVideoId(string videoId)
   {
     var item = _items.FirstOrDefault(x => x.Item.Snippet?.ResourceId?.VideoId == videoId)?.Item;
@@ -122,6 +141,11 @@ public class PlaylistSimulator
   public ReadOnlyCollection<PlaylistItem> GetItems()
   {
     return _items.Select(x => x.Item).ToList().AsReadOnly();
+  }
+  
+  public ReadOnlyCollection<PlaylistSimulatorItem> GetSimulatorItems()
+  {
+    return _items.AsReadOnly();
   }
 }
 
