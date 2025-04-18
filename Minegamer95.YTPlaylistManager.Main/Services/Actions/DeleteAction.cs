@@ -27,7 +27,6 @@ public class DeleteAction : IPlaylistAction
 
     try
     {
-      Console.WriteLine($"SERVICE CALL: Delete PlaylistItemId={PlaylistItemId} (Video: {VideoId})");
       // Ruft die Methode des Interfaces auf
       await service.DeleteItemAsync(PlaylistItemId);
     }

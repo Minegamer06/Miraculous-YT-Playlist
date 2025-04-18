@@ -51,6 +51,7 @@
   },
   {
     "Name": "Miraculous Staffel 1 | Englisch",
+    "IsFinished": true,
     "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKBrHFCcrgt3V6TNk2idQvp1&si=JD2PQJ9pS9a442xP",
     "SourcePlaylistIds": [
       "https://youtube.com/playlist?list=PLuhrB_7OzeSxjSqAz0cOKgJ8Fji-nvbbC&si=YcN7UuIFJ9VoD6nt"
@@ -71,6 +72,7 @@
   },
   {
     "Name": "Miraculous Staffel 2 | Englisch",
+    "IsFinished": true,
     "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKDGV_qnHdRCLIKA4zqwLXlt&si=bMAjfzEjz8xpy0Oo",
     "SourcePlaylistIds": [
       "https://youtube.com/playlist?list=PLuhrB_7OzeSxjSqAz0cOKgJ8Fji-nvbbC&si=YcN7UuIFJ9VoD6nt"
@@ -92,5 +94,38 @@
       "https://youtube.com/playlist?list=PLuhrB_7OzeSxjSqAz0cOKgJ8Fji-nvbbC&si=YcN7UuIFJ9VoD6nt"
     ],
     "Season": 4
+  },
+  {
+    "Name": "Miraculous Alle Staffeln | Deutsch",
+    "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKDiloN9kJFgNoWFfuXDg8qK&si=7uAvUzx_hFMgrBcz",
+    "SourcePlaylistIds": [
+      "https://youtube.com/playlist?list=PLDGA85Y1JsmPuKDxRSM7Y-YqyVMYoHmH7&si=MBvw9fIjKrUwab1o"
+    ],
+    "PredefinedEpisodes": [
+      {
+        "Season": 2,
+        "Episode": 4,
+        "VideoId": "https://youtu.be/1GR5rAXI11k?feature=shared"
+      }
+    ]
+  },
+  {
+    "Name": "Miraculous Alle Staffeln | Englisch",
+    "TargetPlaylistId": "https://youtube.com/playlist?list=PLQg5Jd-VCfKANXLlRY_TcGHTNAtyxcA2B&si=Ox1bvLCTVXKbmeMi",
+    "SourcePlaylistIds": [
+      "https://youtube.com/playlist?list=PLuhrB_7OzeSxjSqAz0cOKgJ8Fji-nvbbC&si=YcN7UuIFJ9VoD6nt"
+    ],
+    "PredefinedEpisodes": [
+      {
+        "Season": 1,
+        "Episode": 4,
+        "VideoId": "https://youtu.be/E9g_sRcRpTY?si=I43HSH27EWMke-o6"
+      },
+      {
+        "Season": 1,
+        "Episode": 19,
+        "VideoId": "https://youtu.be/-LNB4AoON2Q?si=vj6YIaNSGr5DwHln"
+      }
+    ]
   }
 ]

@@ -32,27 +32,41 @@ public class PlaylistUpdater
       desiredVideoIds = desiredVideoIds.Distinct().ToList();
       
       // --- Schritt 1: Aktuellen Zustand lesen ---
-      Console.WriteLine(" Schritt 1: Lese aktuelle Playlist-Elemente...");
+      //Console.WriteLine(" Schritt 1: Lese aktuelle Playlist-Elemente...");
       var currentItems = await _playlistService.ListItemsAsync(targetPlaylistId);
       Console.WriteLine($" {currentItems.Count} Elemente in der Playlist gefunden.");
 
       // --- Schritt 2: Änderungsplan berechnen ---
-      Console.WriteLine(" Schritt 2: Berechne Änderungsplan...");
+      //Console.WriteLine(" Schritt 2: Berechne Änderungsplan...");
       var changePlan = CalculateChangePlan(currentItems, desiredVideoIds, targetPlaylistId);
-      LogChangePlan(changePlan); // Optional: Plan zur Übersicht ausgeben
+      // LogChangePlan(changePlan); // Optional: Plan zur Übersicht ausgeben
 
       // --- Schritt 3: Aktionen ausführen ---
       Console.WriteLine($" Schritt 4: Führe Aktionen aus (DryRun={dryRun})...");
-      if (!QuotaManager.Instance.CanExecute(changePlan.Actions.GetCost(_playlistService)))
+      var updateCost = changePlan.Actions.GetCost(_playlistService);
+      if (!QuotaManager.Instance.CanExecute(updateCost))
       {
         Console.WriteLine($"Quota für {changePlan.Actions.Count} Aktionen nicht ausreichend. Abbruch.");
         return;
       }
+      Console.WriteLine($"Kosten für die Aktionen: {updateCost} Quota-Einheiten");
+      Console.WriteLine($"Aktuelle Quota: {QuotaManager.Instance.RemainingPoints} Quota-Einheiten, Verbleibend nach Update: {QuotaManager.Instance.RemainingPoints - updateCost} Quota-Einheiten");
       int actionCounter = 0;
+      var cursorPosStart = Console.GetCursorPosition();
+      var cursorPosEnd = Console.GetCursorPosition();
       foreach (var action in changePlan.Actions)
       {
         actionCounter++;
-        // Console.WriteLine($"\n Aktion {actionCounter}/{orderedActions.Count}: {action.Describe()}");
+        if (cursorPosStart != cursorPosEnd)
+        {
+          Console.SetCursorPosition(cursorPosStart.Left, cursorPosStart.Top);
+          var range = Math.Abs(cursorPosEnd.Top - cursorPosStart.Top);
+          for (int i = 0; i < range; i++)
+            Console.Write(new string(' ', Console.WindowWidth));
+          Console.SetCursorPosition(cursorPosStart.Left, cursorPosStart.Top);
+        }
+        Console.WriteLine($"\n Aktion {actionCounter}/{changePlan.Actions.Count}: {action.Describe()}");
+        cursorPosEnd = Console.GetCursorPosition();
         await action.ExecuteAsync(_playlistService, dryRun);
       }
 

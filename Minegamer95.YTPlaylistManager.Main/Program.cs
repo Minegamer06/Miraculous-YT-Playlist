@@ -206,11 +206,12 @@ try
       if (task.PredefinedEpisodes is not null)
         episodes.AddRange(task.PredefinedEpisodes);
 
-      episodes = episodes.Where(x => task.Season is null || x.Season == task.Season)
+      episodes = episodes.Where(x => (task.Season is null || x.Season == task.Season) && x.Season is not null)
         .OrderBy(x => x.Season)
         .ThenBy(x => x.Episode).ToList();
 
-      await updater.UpdateTargetPlaylistAsync(task.TargetPlaylistId, episodes.Select(x => x.VideoId).ToList(), true);
+      var target = episodes.Select(x => x.VideoId).ToList();
+      await updater.UpdateTargetPlaylistAsync(task.TargetPlaylistId, target, false);
     }
   }
   else

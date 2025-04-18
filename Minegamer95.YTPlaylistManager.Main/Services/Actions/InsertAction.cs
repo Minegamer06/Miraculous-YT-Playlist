@@ -39,8 +39,6 @@ public class InsertAction : IPlaylistAction
 
     try
     {
-      Console.WriteLine(
-        $"SERVICE CALL: Insert VideoId={VideoId} at Position={TargetPosition} into Playlist={PlaylistId}");
       // Ruft die Methode des Interfaces auf
       await service.InsertItemAsync(newPlaylistItem);
     }

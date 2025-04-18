@@ -43,8 +43,6 @@ public class UpdateAction : IPlaylistAction
 
     try
     {
-      Console.WriteLine(
-        $"SERVICE CALL: Update PlaylistItemId={PlaylistItemId} VideoId={VideoId} to Position={TargetPosition}");
       // Ruft die Methode des Interfaces auf
       await service.UpdateItemAsync(playlistItemForUpdate);
     }
