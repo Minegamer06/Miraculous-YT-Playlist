@@ -1,0 +1,36 @@
+name: Update YouTube Playlists
+
+on:
+  #schedule:
+    # Läuft alle zwei Tage um 08:00 UTC
+    # Cron-Syntax: Minute Stunde Tag(Monat) Monat Tag(Woche)
+    #- cron: '0 8 */2 * *'
+  workflow_dispatch: # Erlaubt manuelles Starten
+
+jobs:
+  update-playlists:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0'
+
+    - name: Restore dependencies
+      run: dotnet restore ./../../Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj # Passe den Pfad zur .csproj an
+
+    - name: Build
+      run: dotnet build ./../../Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj --configuration Release --no-restore
+
+    - name: Run YouTube Updater
+      env:
+        # Secrets werden als Umgebungsvariablen an das Skript übergeben
+        YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+        YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+        GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      # Führe das kompilierte Programm aus
+      run: dotnet run --project ./../../Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj --configuration Release --no-build
