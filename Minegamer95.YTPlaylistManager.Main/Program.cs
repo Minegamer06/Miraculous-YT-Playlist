@@ -233,6 +233,5 @@ try
 }
 catch (Exception ex)
 {
-  Console.Error.WriteLine($"Ein unerwarteter Fehler ist aufgetreten: {ex.Message}");
-  Console.Error.WriteLine(ex);
+  Console.Error.WriteLine($"Ein unerwarteter Fehler ist aufgetreten");
 }
