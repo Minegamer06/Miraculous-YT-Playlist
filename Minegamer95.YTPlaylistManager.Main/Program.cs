@@ -117,11 +117,14 @@ try
       Console.WriteLine("Fehler: Keine Playlist-Tasks gefunden.");
       return;
     }
+    Console.WriteLine($"Es wurden {playlistTasks.Count} Playlist-Tasks gefunden, {playlistTasks.Where(x => x.IsFinished)?.Count()} sind bereits als abgeschlossen makiert.");
 
     foreach (var task in playlistTasks)
     {
+      Console.WriteLine($"Starte Playlist-Task: {task.Name}");
       if (await PrepareTask(task) is not null)
         await RunTask(task);
+      Console.WriteLine("Task abgeschlossen.");
     }
 
     async Task<PlaylistTask?> PrepareTask(PlaylistTask task)
