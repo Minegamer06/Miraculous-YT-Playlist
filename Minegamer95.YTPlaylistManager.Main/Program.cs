@@ -9,7 +9,14 @@ using Minegamer95.YTPlaylistManager.Main.Services.Extractors;
 
 List<PlaylistTask>? LoadConfig()
 {
+  Console.WriteLine("Loading config...");
+  Console.WriteLine($"YTPLAYLIST_CONFIG_PATH: {Environment.GetEnvironmentVariable("YTPLAYLIST_CONFIG_PATH")}");
   string configPath = Environment.GetEnvironmentVariable("YTPLAYLIST_CONFIG_PATH") ?? "Config/playlist_tasks.json";
+  if (string.IsNullOrWhiteSpace(configPath))
+  {
+    Console.WriteLine("Fehler: Der Pfad zur Konfigurationsdatei ist nicht gesetzt.");
+    return null;
+  }
   var file = new FileInfo(configPath);
   if (!file.Exists)
   {
