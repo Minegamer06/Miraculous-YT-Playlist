@@ -1,10 +1,10 @@
 name: Update YouTube Playlists
 
 on:
-  #schedule:
-    # Läuft alle zwei Tage um 08:00 UTC
+  schedule:
+    # Läuft alle zwei Tage um 10:00 UTC
     # Cron-Syntax: Minute Stunde Tag(Monat) Monat Tag(Woche)
-    #- cron: '0 8 */2 * *'
+    - cron: '0 10 */2 * *'
   workflow_dispatch: # Erlaubt manuelles Starten
 
 jobs:
