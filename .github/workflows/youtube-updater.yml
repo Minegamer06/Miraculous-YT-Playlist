@@ -21,10 +21,10 @@ jobs:
         dotnet-version: '8.0'
 
     - name: Restore dependencies
-      run: dotnet restore ./../../Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj # Passe den Pfad zur .csproj an
+      run: dotnet restore ./Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj # Passe den Pfad zur .csproj an
 
     - name: Build
-      run: dotnet build ./../../Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj --configuration Release --no-restore
+      run: dotnet build ./Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj --configuration Release --no-restore
 
     - name: Run YouTube Updater
       env:
@@ -33,4 +33,4 @@ jobs:
         YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
         GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
       # Führe das kompilierte Programm aus
-      run: dotnet run --project ./../../Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj --configuration Release --no-build
+      run: dotnet run --project ./Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj --configuration Release --no-build
