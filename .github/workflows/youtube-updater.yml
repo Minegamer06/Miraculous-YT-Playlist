@@ -32,6 +32,6 @@ jobs:
         YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
         YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
         GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-        YTPLAYLIST_CONFIG_PATH: ${{ YTPLAYLIST_CONFIG_PATH }}
+        YTPLAYLIST_CONFIG_PATH: ${{ env.YTPLAYLIST_CONFIG_PATH }}
       # Führe das kompilierte Programm aus
       run: dotnet run --project ./Minegamer95.YTPlaylistManager.Main/Minegamer95.YTPlaylistManager.Main.csproj --configuration Release --no-build
