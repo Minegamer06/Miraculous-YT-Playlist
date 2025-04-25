@@ -1,5 +1,6 @@
 # Miraculous-YT-Playlist
 Ein kleines Repo für meine Inoffiziellen YouTube Playlist zu den Miraculous Staffeln von den Miraculous YT Kanälen.
+Die In den Playlist Enthalten Videos sind von den Offizilen Miraculous Kanälen der jeweiligen Sprache oder dem Disney Channel YT Kanal.
 
 ## Miraculous Deutsch
 [Alle Verfügbaren](https://youtube.com/playlist?list=PLQg5Jd-VCfKDiloN9kJFgNoWFfuXDg8qK&si=7uAvUzx_hFMgrBcz)
