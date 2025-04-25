@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -17,7 +17,7 @@
     <ItemGroup>
       <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
       <PackageReference Include="Google.Apis.Core" Version="1.69.0" />
-      <PackageReference Include="Google.Apis.YouTube.v3" Version="1.69.0.3707" />
+      <PackageReference Include="Google.Apis.YouTube.v3" Version="1.69.0.3742" />
     </ItemGroup>
 
     <ItemGroup>
