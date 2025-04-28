@@ -18,4 +18,8 @@ RUN dotnet publish "Minegamer95.YTPlaylistManager.Main.csproj" -c $BUILD_CONFIGU
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+# Definiere Auth-Umgebungsvariablen mit leerem Standardwert
+ENV GOOGLE_REFRESH_TOKEN=""
+ENV YT_CLIENT_ID=""
+ENV YT_CLIENT_SECRET=""
 ENTRYPOINT ["dotnet", "Minegamer95.YTPlaylistManager.Main.dll"]
